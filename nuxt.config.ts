@@ -1,4 +1,4 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
 // eslint-disable-next-line no-undef
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -9,4 +9,8 @@ export default defineNuxtConfig({
       standalone: false,
     },
   },
+  vite: {
+    plugins: [tailwindcss()],
+  },
+  css: ['../assets/css/main.css'],
 })
