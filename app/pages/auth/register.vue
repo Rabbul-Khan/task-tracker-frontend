@@ -8,13 +8,15 @@ const colorMode = useColorMode()
 colorMode.preference = 'light'
 
 const schema = z.object({
+  name: z.string(),
   email: z.email('Invalid email address'),
   password: z.string('Password is required').min(8, 'Password must be at least 8 characters'),
 })
 
 const state = reactive({
-  email: undefined,
-  password: undefined,
+  name: '',
+  email: '',
+  password: '',
 })
 
 const { login, error, loading } = useAuth()
@@ -26,7 +28,7 @@ async function handleLogin(event) {
 
 <template>
   <div class="flex min-h-screen bg-gray-100 items-center justify-center">
-    <div class="flex bg-white max-w-[500px] w-full rounded-2xl shadow-sm flex-col justify-center p-8 md:p-16 lg:p-20">
+    <div class="flex bg-white max-w-[500px] w-full rounded-2xl shadow-sm flex-col justify-center p-8 md:p-16 lg:py-14 lg:px-20">
       <!-- Logo -->
       <div class="mb-10 flex items-center gap-2">
         <div class="bg-primary w-8 h-8 flex items-center justify-center rounded-md text-white font-bold">
@@ -36,13 +38,26 @@ async function handleLogin(event) {
       </div>
 
       <h1 class="text-3xl font-bold text-text mb-2">
-        Welcome Back!
+        Join TaskFlow!
       </h1>
       <p class="text-text-muted mb-8">
-        Sign in to access your dashboard and turn your plans into progress with TaskFlow.
+        Create your account to start organizing tasks, tracking progress, and achieving your goals.
       </p>
 
       <UForm :schema="schema" :state="state" class="space-y-6 flex flex-col" :validate-on="['change', 'input']" @submit="handleLogin">
+        <!-- Name -->
+        <UFormField label="Name" name="name" :ui="{ label: 'text-text font-medium' }">
+          <UInput
+            v-model="state.name"
+            type="name"
+            placeholder="Enter your full name"
+            size="lg"
+            :disabled="loading"
+            class="w-full"
+            :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+            autofocus
+          />
+        </UFormField>
         <!-- Email -->
         <UFormField label="Email" name="email" :ui="{ label: 'text-text font-medium' }">
           <UInput
@@ -53,7 +68,6 @@ async function handleLogin(event) {
             :disabled="loading"
             class="w-full"
             :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
-            autofocus
           />
         </UFormField>
 
@@ -63,6 +77,19 @@ async function handleLogin(event) {
             v-model="state.password"
             type="password"
             placeholder="Enter your password"
+            size="lg"
+            :disabled="loading"
+            class="w-full"
+            :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+          />
+        </UFormField>
+
+        <!-- Confirm Password -->
+        <UFormField label="Confirm Password" name="password" :ui="{ label: 'text-text font-medium' }">
+          <UInput
+            v-model="state.password"
+            type="password"
+            placeholder="Confirm your password"
             size="lg"
             :disabled="loading"
             class="w-full"
@@ -83,7 +110,7 @@ async function handleLogin(event) {
           icon="i-heroicons-exclamation-triangle"
         />
 
-        <!-- Sign In Button -->
+        <!-- Register Button -->
         <UButton
           type="submit"
           size="lg"
@@ -113,9 +140,9 @@ async function handleLogin(event) {
         </UButton>
 
         <p class="text-center text-sm text-text-secondary">
-          Don't have an account?
-          <NuxtLink to="/auth/register" class="text-primary font-medium hover:underline">
-            Sign Up
+          Already have an account?
+          <NuxtLink to="/" class="text-primary font-medium hover:underline">
+            Sign in here
           </NuxtLink>
         </p>
       </UForm>
