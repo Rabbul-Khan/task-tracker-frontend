@@ -1,4 +1,5 @@
 import { loginUser } from '~/services/login'
+import { registerUser } from '~/services/register'
 
 export function useAuth() {
   const loading = ref(false)
@@ -36,5 +37,27 @@ export function useAuth() {
     }
   }
 
-  return { loading, error, login, token }
+  async function register(name, email, password) {
+    try {
+      loading.value = true
+      error.value = ''
+      const data = await registerUser(name, email, password)
+
+      // Update reactive state
+      token.value = data.token
+
+      // Persist to localStorage (client-side only)
+      if (import.meta.client) {
+        localStorage.setItem('token', data.token)
+      }
+    }
+    catch (err) {
+      error.value = err.message || 'Registration failed'
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  return { loading, error, login, register, token }
 }

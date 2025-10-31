@@ -3,26 +3,30 @@ import { useAuth } from '#imports'
 import { z } from 'zod'
 // eslint-disable-next-line no-undef
 const colorMode = useColorMode()
-
-// Temporary - force light mode on this page
 colorMode.preference = 'light'
 
+// Validation schema with password confirmation
 const schema = z.object({
-  name: z.string(),
-  email: z.email('Invalid email address'),
-  password: z.string('Password is required').min(8, 'Password must be at least 8 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 })
 
 const state = reactive({
   name: '',
   email: '',
   password: '',
+  confirmPassword: '',
 })
 
-const { login, error, loading } = useAuth()
+const { register, error, loading } = useAuth()
 
-async function handleLogin(event) {
-  await login(event.data.email, event.data.password)
+async function handleRegister(event) {
+  await register(event.data.name, event.data.email, event.data.password)
 }
 </script>
 
@@ -44,62 +48,63 @@ async function handleLogin(event) {
         Create your account to start organizing tasks, tracking progress, and achieving your goals.
       </p>
 
-      <UForm :schema="schema" :state="state" class="space-y-6 flex flex-col" :validate-on="['change', 'input']" @submit="handleLogin">
+      <UForm :schema="schema" :state="state" class="space-y-6 flex flex-col" :validate-on="['change', 'input']" @submit="handleRegister">
         <!-- Name -->
-        <UFormField label="Name" name="name" :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Full Name" name="name" required :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.name"
-            type="name"
+            type="text"
             placeholder="Enter your full name"
             size="lg"
             :disabled="loading"
+            autocomplete="name"
             class="w-full"
             :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
             autofocus
           />
         </UFormField>
+
         <!-- Email -->
-        <UFormField label="Email" name="email" :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Email" name="email" required :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.email"
             type="email"
             placeholder="Enter your email"
             size="lg"
             :disabled="loading"
+            autocomplete="email"
             class="w-full"
             :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
           />
         </UFormField>
 
         <!-- Password -->
-        <UFormField label="Password" name="password" :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Password" name="password" required :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.password"
             type="password"
-            placeholder="Enter your password"
+            placeholder="Create a strong password"
             size="lg"
             :disabled="loading"
+            autocomplete="new-password"
             class="w-full"
             :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
           />
         </UFormField>
 
         <!-- Confirm Password -->
-        <UFormField label="Confirm Password" name="password" :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Confirm Password" name="confirmPassword" required :ui="{ label: 'text-text font-medium' }">
           <UInput
-            v-model="state.password"
+            v-model="state.confirmPassword"
             type="password"
             placeholder="Confirm your password"
             size="lg"
             :disabled="loading"
+            autocomplete="new-password"
             class="w-full"
             :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
           />
         </UFormField>
-
-        <div class="text-right text-sm">
-          <a href="#" class="text-primary hover:underline">Forgot Password?</a>
-        </div>
 
         <!-- Error -->
         <UAlert
@@ -117,8 +122,9 @@ async function handleLogin(event) {
           block
           color="primary"
           :loading="loading"
-          class="transition-colors duration-300 cursor-pointer"
-          label="Sign In"
+          :disabled="loading"
+          class="transition-colors duration-300"
+          label="Create Account"
         />
 
         <!-- OR Divider -->
