@@ -50,7 +50,7 @@ async function handleRegister(event) {
 
       <UForm :schema="schema" :state="state" class="space-y-6 flex flex-col" :validate-on="['change', 'input']" @submit="handleRegister">
         <!-- Name -->
-        <UFormField label="Full Name" name="name" required :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Full Name" name="name" :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.name"
             type="text"
@@ -65,7 +65,7 @@ async function handleRegister(event) {
         </UFormField>
 
         <!-- Email -->
-        <UFormField label="Email" name="email" required :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Email" name="email" :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.email"
             type="email"
@@ -79,7 +79,7 @@ async function handleRegister(event) {
         </UFormField>
 
         <!-- Password -->
-        <UFormField label="Password" name="password" required :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Password" name="password" :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.password"
             type="password"
@@ -93,7 +93,7 @@ async function handleRegister(event) {
         </UFormField>
 
         <!-- Confirm Password -->
-        <UFormField label="Confirm Password" name="confirmPassword" required :ui="{ label: 'text-text font-medium' }">
+        <UFormField label="Confirm Password" name="confirmPassword" :ui="{ label: 'text-text font-medium' }">
           <UInput
             v-model="state.confirmPassword"
             type="password"

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-returns-description */
 const BASE_URL = 'http://localhost:8003/api'
 
 /**
@@ -5,6 +6,7 @@ const BASE_URL = 'http://localhost:8003/api'
  * @param {string} name - User's full name
  * @param {string} email - User email
  * @param {string} password - User password
+ // eslint-disable-next-line jsdoc/require-returns-description
  * @returns {Promise<{token: string, user: object}>}
  */
 export async function registerUser(name, email, password) {
