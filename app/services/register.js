@@ -13,7 +13,10 @@ export async function registerUser(name, email, password) {
   try {
     const response = await fetch(`${BASE_URL}/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: JSON.stringify({ name, email, password, password_confirmation: password }),
     })
 

@@ -32,7 +32,7 @@ const state = reactive({
 const { register, error, loading } = useAuth()
 
 async function handleRegister(event) {
-  await register(event.data.name, event.data.email, event.data.password)
+  await register(event.data.name, event.data.email, event.data.password, event.data.confirmPassword)
 }
 </script>
 
