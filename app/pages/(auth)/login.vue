@@ -21,10 +21,14 @@ const state = reactive({
   password: '',
 })
 
-const { login, error, loading } = useAuth()
+const { login, error, loading, token } = useAuth()
 
 async function handleLogin(event) {
   await login(event.data.email, event.data.password)
+  if (token.value) {
+    // eslint-disable-next-line no-undef
+    navigateTo('/teams')
+  }
 }
 </script>
 
@@ -80,7 +84,7 @@ async function handleLogin(event) {
       <!-- Error -->
       <UAlert
         v-if="error"
-        color="red"
+        color="error"
         variant="soft"
         :title="error"
         icon="i-heroicons-exclamation-triangle"

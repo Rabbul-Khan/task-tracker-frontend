@@ -30,7 +30,9 @@ export function useAuth() {
       }
     }
     catch (err) {
-      error.value = err.message || 'Login failed'
+      if (err) {
+        error.value = 'Invalid email or password'
+      }
     }
     finally {
       loading.value = false
