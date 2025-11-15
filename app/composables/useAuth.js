@@ -10,13 +10,15 @@ export function useAuth() {
 
   // Use useState for SSR-safe reactive state
   // eslint-disable-next-line no-undef
-  const token = useState('auth-token', () => {
-    // Only access localStorage on client-side
-    if (import.meta.client) {
-      return localStorage.getItem('token')
+  const token = useState('auth-token', () => null)
+
+  // Sync token from localStorage on client-side
+  if (import.meta.client && !token.value) {
+    const storedToken = localStorage.getItem('token')
+    if (storedToken) {
+      token.value = storedToken
     }
-    return null
-  })
+  }
 
   async function login(email, password) {
     try {

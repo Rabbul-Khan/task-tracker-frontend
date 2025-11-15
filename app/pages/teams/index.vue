@@ -1,51 +1,19 @@
 <script setup>
+import { useAuth, useTeams } from '#imports'
 import { z } from 'zod'
 
-const teams = [
-  {
-    id: 1,
-    name: 'Design Squad',
-    ownerName: 'Alice Johnson',
-    ownerAvatar: 'https://i.pravatar.cc/100?img=1',
-    createdAt: '2024-10-12',
-    membersCount: 8,
-  },
-  {
-    id: 2,
-    name: 'Backend Ninjas',
-    ownerName: 'John Doe',
-    ownerAvatar: 'https://i.pravatar.cc/100?img=2',
-    createdAt: '2024-11-03',
-    membersCount: 5,
-  },
-  {
-    id: 3,
-    name: 'Frontend Force',
-    ownerName: 'Emma Wilson',
-    ownerAvatar: 'https://i.pravatar.cc/100?img=3',
-    createdAt: '2024-11-15',
-    membersCount: 6,
-  },
-  {
-    id: 4,
-    name: 'DevOps Warriors',
-    ownerName: 'Michael Chen',
-    ownerAvatar: 'https://i.pravatar.cc/100?img=4',
-    createdAt: '2024-10-28',
-    membersCount: 4,
-  },
-  {
-    id: 5,
-    name: 'QA Champions',
-    ownerName: 'Sarah Martinez',
-    ownerAvatar: 'https://i.pravatar.cc/100?img=5',
-    createdAt: '2024-11-20',
-    membersCount: 7,
-  },
-]
+const { token } = useAuth()
+const { teams, loading: teamsLoading, error: teamsError, success, getMyTeams, addTeam } = useTeams()
 
 const isModalOpen = ref(false)
 const loading = ref(false)
+
+// Fetch teams when component mounts
+onMounted(async () => {
+  if (token.value) {
+    await getMyTeams(token.value)
+  }
+})
 
 const schema = z.object({
   teamName: z.string().min(3, 'Team name must be at least 3 characters'),
@@ -74,15 +42,10 @@ function closeModal() {
 
 async function handleCreateTeam(event) {
   loading.value = true
-  // TODO: Implement team creation logic
-  // eslint-disable-next-line no-console
-  console.log('Creating team:', event.data.teamName)
-
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000))
+  closeModal()
+  await addTeam(token.value, event.data.teamName)
 
   loading.value = false
-  closeModal()
 }
 </script>
 
@@ -138,13 +101,14 @@ async function handleCreateTeam(event) {
           <h1 class="text-3xl font-bold">
             Teams
           </h1>
-          <UModal>
+
+          <UModal v-model:open="isModalOpen">
             <UButton
               color="primary"
               size="md"
               label="Create Team"
               icon="i-heroicons-plus"
-              class="px-6"
+              class="px-6 cursor-pointer"
               @click="openModal"
             />
             <template #content>
@@ -164,7 +128,7 @@ async function handleCreateTeam(event) {
                       color="gray"
                       variant="ghost"
                       icon="i-heroicons-x-mark-20-solid"
-                      class="-my-1"
+                      class="-my-1 cursor-pointer"
                       @click="closeModal"
                     />
                   </div>
@@ -191,7 +155,7 @@ async function handleCreateTeam(event) {
                       color="error"
                       variant="outline"
                       block
-                      class="w-28"
+                      class="w-34"
                       :disabled="loading"
                       @click="closeModal"
                     >
@@ -202,7 +166,7 @@ async function handleCreateTeam(event) {
                       size="lg"
                       color="primary"
                       block
-                      class="w-28"
+                      class="w-34"
                       :loading="loading"
                     >
                       Create Team
@@ -214,11 +178,34 @@ async function handleCreateTeam(event) {
           </UModal>
         </div>
         <hr class="border-gray-300 mb-6">
-        <!-- <h2 class="text-sm mb-5">
-          Here is a list of teams you created
-        </h2> -->
-        <!-- Your teams content goes here -->
-        <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+
+        <!-- Success Message -->
+        <UAlert
+          v-if="success"
+          color="success"
+          variant="soft"
+          :title="success"
+          icon="i-heroicons-check-circle"
+          class="mb-6"
+        />
+
+        <!-- Loading State -->
+        <div v-if="teamsLoading" class="flex justify-center items-center py-20">
+          <UIcon name="i-heroicons-arrow-path" class="animate-spin text-5xl text-primary" />
+        </div>
+
+        <!-- Error State -->
+        <UAlert
+          v-else-if="teamsError"
+          color="error"
+          variant="soft"
+          :title="teamsError"
+          icon="i-heroicons-exclamation-triangle"
+          class="mb-6"
+        />
+
+        <!-- Teams Grid -->
+        <div v-else-if="teams.length > 0" class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <div
             v-for="team in teams"
             :key="team.id"
@@ -232,14 +219,14 @@ async function handleCreateTeam(event) {
               <div
                 class="rounded-full bg-blue-50 text-primary text-xs px-3 py-1 font-medium"
               >
-                {{ team.membersCount }} Members
+                {{ team.members_count || team.membersCount || 0 }} Members
               </div>
             </div>
 
             <!-- Owner -->
-            <div class="flex items-center gap-3 mb-4">
+            <div v-if="team.owner" class="flex items-center gap-3 mb-4">
               <img
-                :src="team.ownerAvatar"
+                :src="team.owner.avatar || team.ownerAvatar || `https://ui-avatars.com/api/?name=${team.owner.name || 'User'}`"
                 alt="Owner avatar"
                 class="w-8 h-8 rounded-full object-cover"
               >
@@ -248,14 +235,14 @@ async function handleCreateTeam(event) {
                   Owner
                 </p>
                 <p class="text-sm font-medium text-gray-800">
-                  {{ team.ownerName }}
+                  {{ team.owner.name || team.ownerName }}
                 </p>
               </div>
             </div>
 
             <!-- Footer -->
             <div class="flex items-center justify-between text-sm text-gray-500">
-              <span>Created on {{ formatDate(team.createdAt) }}</span>
+              <span>Created on {{ formatDate(team.created_at || team.createdAt) }}</span>
 
               <ULink
                 :to="`/teams/${team.id}`"
@@ -269,10 +256,21 @@ async function handleCreateTeam(event) {
             </div>
           </div>
         </div>
+
+        <!-- Empty State -->
+        <div v-else class="text-center py-20">
+          <UIcon name="i-heroicons-user-group" class="text-6xl text-gray-300 mb-4 mx-auto" />
+          <h3 class="text-xl font-semibold text-gray-600 mb-2">
+            No teams yet
+          </h3>
+          <p class="text-gray-500 mb-6">
+            Create your first team to get started
+          </p>
+          <UButton color="primary" size="lg" @click="openModal">
+            Create Team
+          </UButton>
+        </div>
       </main>
     </div>
-
-    <!-- Create Team Modal -->
-    <UModal v-model="isModalOpen" :ui="{ width: 'sm:max-w-md' }" />
   </div>
 </template>
