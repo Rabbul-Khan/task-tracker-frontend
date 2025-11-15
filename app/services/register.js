@@ -20,26 +20,19 @@ export async function registerUser(name, email, password) {
       body: JSON.stringify({ name, email, password, password_confirmation: password }),
     })
 
-    // Handle network-level errors
-    if (!response.ok) {
-      throw new Error(`Network error: ${response.status}`)
-    }
+    const result = await response.json().catch(() => ({}))
 
-    const result = await response.json()
-
-    // Handle backend/application-level errors
-    if (!result.status) {
-      throw new Error(result.message || 'Registration failed')
-    }
-
-    // Validate response structure
-    if (!result.token || !result.data) {
-      throw new Error('Invalid response structure from server')
+    // Handle validation or backend errors (Laravel style)
+    if (!response.ok || !result.status) {
+      const error = new Error(result.message || 'Registration failed')
+      error.details = result.errors || null
+      throw error
     }
 
     return {
       token: result.token,
       user: result.data,
+      message: result.message,
     }
   }
   catch (err) {

@@ -29,10 +29,17 @@ const state = reactive({
   confirmPassword: '',
 })
 
-const { register, error, loading } = useAuth()
+const { register, error, loading, success } = useAuth()
 
 async function handleRegister(event) {
   await register(event.data.name, event.data.email, event.data.password, event.data.confirmPassword)
+  if (success.value) {
+    // Redirect after 2.2 seconds (so message fades first)
+    setTimeout(() => {
+      // eslint-disable-next-line no-undef
+      navigateTo('/login')
+    }, 2200)
+  }
 }
 </script>
 
@@ -114,11 +121,23 @@ async function handleRegister(event) {
       <!-- Error -->
       <UAlert
         v-if="error"
-        color="red"
+        color="error"
         variant="soft"
         :title="error"
         icon="i-heroicons-exclamation-triangle"
       />
+
+      <!-- Success alert -->
+      <Transition name="fade">
+        <UAlert
+          v-if="success"
+          color="success"
+          variant="soft"
+          :title="success"
+          icon="i-heroicons-check-circle"
+          class="transition-opacity duration-500"
+        />
+      </Transition>
 
       <!-- Register Button -->
       <UButton
@@ -159,3 +178,14 @@ async function handleRegister(event) {
     </UForm>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
