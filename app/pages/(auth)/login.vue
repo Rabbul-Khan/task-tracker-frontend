@@ -21,14 +21,31 @@ const state = reactive({
   password: '',
 })
 
-const { login, error, loading, token } = useAuth()
+const { login, loginWithGoogle, error, loading, token } = useAuth()
 
+// Regular email/password login
 async function handleLogin(event) {
   await login(event.data.email, event.data.password)
   if (token.value) {
     // eslint-disable-next-line no-undef
     navigateTo('/teams')
   }
+}
+
+// Handle Google OAuth success
+async function handleLoginSuccess(response) {
+  const { credential } = response
+  const success = await loginWithGoogle(credential)
+
+  if (success) {
+    // eslint-disable-next-line no-undef
+    navigateTo('/teams')
+  }
+}
+
+// Handle Google OAuth error
+function handleLoginError() {
+  console.error('Google login failed')
 }
 </script>
 
@@ -109,7 +126,12 @@ async function handleLogin(event) {
       </div>
 
       <!-- Social Buttons -->
-      <UButton
+
+      <GoogleSignInButton
+        @success="handleLoginSuccess"
+        @error="handleLoginError"
+      />
+      <!-- <UButton
         icon="i-logos-google-icon"
         variant="outline"
         size="lg"
@@ -117,7 +139,7 @@ async function handleLogin(event) {
         :ui="{ base: 'border-border text-text-muted hover:bg-slate-100 cursor-pointer' }"
       >
         Continue with Google
-      </UButton>
+      </UButton> -->
 
       <p class="text-center text-sm text-text-secondary">
         Don't have an account?

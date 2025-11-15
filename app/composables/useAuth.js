@@ -1,3 +1,4 @@
+import { googleLogin } from '~/services/googleAuth'
 import { loginUser } from '~/services/login'
 import { registerUser } from '~/services/register'
 
@@ -72,6 +73,33 @@ export function useAuth() {
     }
   }
 
+  async function loginWithGoogle(credential) {
+    try {
+      loading.value = true
+      error.value = ''
+
+      const data = await googleLogin(credential)
+
+      // Update reactive state
+      token.value = data.token
+      user.value = data.user
+
+      // Persist to localStorage (client-side only)
+      if (import.meta.client) {
+        localStorage.setItem('token', data.token)
+      }
+
+      return true
+    }
+    catch (err) {
+      error.value = err.message || 'Google login failed'
+      return false
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -85,5 +113,5 @@ export function useAuth() {
     navigateTo('/login')
   }
 
-  return { loading, error, login, register, logout, token, success }
+  return { loading, error, login, register, loginWithGoogle, logout, token, success, user }
 }
