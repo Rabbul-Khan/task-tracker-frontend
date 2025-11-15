@@ -128,6 +128,7 @@ function handleLoginError() {
       <!-- Social Buttons -->
 
       <GoogleSignInButton
+        class="mx-auto mt-2"
         @success="handleLoginSuccess"
         @error="handleLoginError"
       />
