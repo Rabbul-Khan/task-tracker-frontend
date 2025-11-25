@@ -1,3 +1,10 @@
+<script setup>
+// eslint-disable-next-line no-undef
+definePageMeta({
+  layout: 'auth',
+})
+</script>
+
 <template>
   <div class="flex min-h-screen bg-gray-100 items-center justify-center flex-col gap-5">
     Welcome to task tracker
