@@ -2,6 +2,9 @@
 import { useRoute } from '#imports'
 import { computed, reactive, ref, watch } from 'vue'
 import { z } from 'zod'
+import TaskTable from '../../../components/TaskTable.vue'
+
+const BASE_URL = 'http://localhost:8003/api'
 
 const route = useRoute()
 
@@ -12,24 +15,175 @@ const lastRefreshedAt = ref(null)
 
 const mockTaskDatabase = {
   1: [
-    { team_id: 1, title: '1A ndc bugfix', category: 'bugfix' },
-    { team_id: 1, title: 'Prototype analytics dashboard', category: 'feature' },
-    { team_id: 1, title: 'Accessibility sweep: marketing site', category: 'improvement' },
-    { team_id: 1, title: 'User journey research interviews', category: 'research' },
-    { team_id: 3, title: 'Component library audit', category: 'improvement' },
-    { team_id: 3, title: 'Convert forms to Composition API', category: 'refactor' },
+    {
+      id: '1',
+      readable_id: 'TSK-101',
+      title: 'Fix login page CSS overflow on mobile devices',
+      description: 'Login button hidden on iPhone SE',
+      status: 'in_progress',
+      priority: 'high',
+      category: 'bugfix',
+      due_date: '2024-10-14T00:00:00Z',
+      assignee: {
+        id: 'u1',
+        name: 'Asif Hayat',
+        email: 'asif@gmail.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      },
+      created_at: '2024-10-10T09:00:00Z',
+    },
+    {
+      id: '2',
+      readable_id: 'TSK-102',
+      title: 'Integrate Stripe Payment Gateway',
+      description: null,
+      status: 'todo',
+      priority: 'critical',
+      category: 'feature',
+      due_date: '2025-10-20T00:00:00Z',
+      assignee: {
+        id: 'u2',
+        name: 'Sarah Jenkins',
+        email: 'sarah@example.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=sarah',
+      },
+      created_at: '2024-10-11T14:30:00Z',
+    },
+    {
+      id: '3',
+      readable_id: 'TSK-104',
+      title: 'Research competitors',
+      description: null,
+      status: 'done',
+      priority: 'low',
+      category: 'research',
+      due_date: null,
+      assignee: {
+        id: 'u3',
+        name: 'Mike Ross',
+        email: 'mike@example.com',
+        avatar_url: null,
+      },
+      created_at: '2024-09-28T09:15:00Z',
+    },
   ],
   2: [
-    { team_id: 2, title: 'API latency investigation', category: 'bugfix' },
-    { team_id: 2, title: 'Implement Auth0 integration', category: 'feature' },
-    { team_id: 2, title: 'Automate nightly backups', category: 'maintenance' },
-    { team_id: 2, title: 'Postmortem: release 2.4', category: 'quality' },
+    {
+      id: '21',
+      readable_id: 'TSK-220',
+      title: 'API latency investigation',
+      description: 'Trace slow query path impacting dashboard response times.',
+      status: 'review',
+      priority: 'critical',
+      category: 'maintenance',
+      due_date: '2025-12-01T00:00:00Z',
+      assignee: {
+        id: 'u4',
+        name: 'Devon Miles',
+        email: 'devon@example.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=devon',
+      },
+      created_at: '2025-11-10T15:45:00Z',
+    },
+    {
+      id: '22',
+      readable_id: 'TSK-221',
+      title: 'Implement Auth0 integration',
+      description: null,
+      status: 'in_progress',
+      priority: 'medium',
+      category: 'feature',
+      due_date: '2025-12-14T00:00:00Z',
+      assignee: {
+        id: 'u5',
+        name: 'Linh Tran',
+        email: 'linh@example.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=linh',
+      },
+      created_at: '2025-11-18T10:20:00Z',
+    },
+    {
+      id: '23',
+      readable_id: 'TSK-222',
+      title: 'Automate nightly backups',
+      description: 'Set up new backup pipeline in AWS.',
+      status: 'todo',
+      priority: 'low',
+      category: 'maintenance',
+      due_date: '2026-01-05T00:00:00Z',
+      assignee: null,
+      created_at: '2025-11-05T08:05:00Z',
+    },
+    {
+      id: '24',
+      readable_id: 'TSK-223',
+      title: 'Postmortem: release 2.4',
+      description: 'Document findings and share with stakeholders.',
+      status: 'done',
+      priority: 'medium',
+      category: 'quality',
+      due_date: '2025-11-20T00:00:00Z',
+      assignee: {
+        id: 'u6',
+        name: 'Priya Patel',
+        email: 'priya@example.com',
+        avatar_url: null,
+      },
+      created_at: '2025-11-02T12:10:00Z',
+    },
   ],
   3: [
-    { team_id: 3, title: 'Component library audit', category: 'improvement' },
-    { team_id: 3, title: 'Convert forms to Composition API', category: 'refactor' },
-    { team_id: 3, title: 'QA smoke suite expansion', category: 'quality' },
-    { team_id: 3, title: 'Content strategy research', category: 'research' },
+    {
+      id: '31',
+      readable_id: 'TSK-301',
+      title: 'Component library audit',
+      description: null,
+      status: 'review',
+      priority: 'medium',
+      category: 'improvement',
+      due_date: '2025-12-10T00:00:00Z',
+      assignee: {
+        id: 'u7',
+        name: 'Amelia Chen',
+        email: 'amelia@example.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=amelia',
+      },
+      created_at: '2025-11-12T09:40:00Z',
+    },
+    {
+      id: '32',
+      readable_id: 'TSK-302',
+      title: 'Convert forms to Composition API',
+      description: 'Migrate legacy form logic to Composition API patterns.',
+      status: 'in_progress',
+      priority: 'high',
+      category: 'refactor',
+      due_date: '2026-01-15T00:00:00Z',
+      assignee: {
+        id: 'u8',
+        name: 'Jacob Miller',
+        email: 'jacob@example.com',
+        avatar_url: 'https://i.pravatar.cc/150?u=jacob',
+      },
+      created_at: '2025-11-25T11:25:00Z',
+    },
+    {
+      id: '33',
+      readable_id: 'TSK-303',
+      title: 'QA smoke suite expansion',
+      description: null,
+      status: 'todo',
+      priority: 'low',
+      category: 'quality',
+      due_date: '2025-12-18T00:00:00Z',
+      assignee: {
+        id: 'u9',
+        name: 'Daniel Ortega',
+        email: 'daniel@example.com',
+        avatar_url: null,
+      },
+      created_at: '2025-11-15T07:55:00Z',
+    },
   ],
 }
 
@@ -48,52 +202,6 @@ const mockTeams = {
   },
 }
 
-const categoryPalette = {
-  bugfix: {
-    label: 'Bug Fix',
-    chipClass: 'bg-rose-50 text-rose-700 border-rose-200',
-    icon: 'i-heroicons-wrench-screwdriver',
-  },
-  feature: {
-    label: 'Feature',
-    chipClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    icon: 'i-heroicons-sparkles',
-  },
-  improvement: {
-    label: 'Improvement',
-    chipClass: 'bg-blue-50 text-blue-700 border-blue-200',
-    icon: 'i-heroicons-arrow-trending-up',
-  },
-  research: {
-    label: 'Research',
-    chipClass: 'bg-sky-50 text-sky-700 border-sky-200',
-    icon: 'i-heroicons-magnifying-glass-circle',
-  },
-  maintenance: {
-    label: 'Maintenance',
-    chipClass: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-    icon: 'i-heroicons-cog-6-tooth',
-  },
-  quality: {
-    label: 'Quality Assurance',
-    chipClass: 'bg-amber-50 text-amber-700 border-amber-200',
-    icon: 'i-heroicons-clipboard-document-check',
-  },
-  refactor: {
-    label: 'Refactor',
-    chipClass: 'bg-violet-50 text-violet-700 border-violet-200',
-    icon: 'i-heroicons-arrow-path-rounded-square',
-  },
-}
-
-function getCategoryMeta(category) {
-  return categoryPalette[category] ?? {
-    label: 'Uncategorized',
-    chipClass: 'bg-gray-100 text-gray-600 border-gray-200',
-    icon: 'i-heroicons-tag',
-  }
-}
-
 const teamId = computed(() => Number(route.params.id))
 
 const teamMeta = computed(() => mockTeams[teamId.value] ?? null)
@@ -104,16 +212,6 @@ const teamName = computed(() => {
   }
   return Number.isNaN(teamId.value) ? 'Team' : `Team #${teamId.value}`
 })
-
-// const totalTasks = computed(() => tasks.value.length)
-
-const tasksWithMeta = computed(() => tasks.value.map((task) => {
-  const meta = getCategoryMeta(task.category)
-  return {
-    ...task,
-    meta,
-  }
-}))
 
 const lastRefreshedLabel = computed(() => {
   if (!lastRefreshedAt.value) {
@@ -126,8 +224,6 @@ const lastRefreshedLabel = computed(() => {
     minute: '2-digit',
   })
 })
-
-const isEmptyState = computed(() => !loading.value && !errorMessage.value && tasks.value.length === 0)
 
 let activeRequestToken = 0
 
@@ -150,9 +246,9 @@ async function loadTasks(id) {
       return
     }
 
-    tasks.value = data.map((task, index) => ({
+    tasks.value = data.map(task => ({
       ...task,
-      id: `${numericId}-${index + 1}`,
+      assignee: task.assignee ? { ...task.assignee } : null,
     }))
     lastRefreshedAt.value = new Date()
   }
@@ -191,30 +287,56 @@ function openInviteModal() {
   inviteModalOpen.value = true
 }
 
-// function closeInviteModal() {
-//   inviteModalOpen.value = false
-//   inviteState.email = ''
-//   inviteSending.value = false
-//   inviteError.value = ''
-//   inviteSuccess.value = false
-// }
-
 async function handleInviteSubmit({ data }) {
   inviteSending.value = true
   inviteError.value = ''
   inviteSuccess.value = false
 
   const { email } = data
+  const targetTeamId = Number(teamId.value)
+
+  if (!Number.isFinite(targetTeamId)) {
+    inviteError.value = 'Invalid team information. Refresh and try again.'
+    inviteSending.value = false
+    return
+  }
+
+  const token = localStorage.getItem('token')
+  if (!token) {
+    inviteError.value = 'Missing authentication token. Please sign in again.'
+    inviteSending.value = false
+    return
+  }
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 600))
+    await fetch(`${BASE_URL}/teams/invite`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        team_id: targetTeamId,
+        email,
+      }),
+      redirect: 'manual',
+    })
     inviteSuccess.value = true
     lastInvitedEmail.value = email
     inviteState.email = ''
   }
   catch (error) {
     console.error('Invite failed', error)
-    inviteError.value = 'Unable to send invite. Please try again.'
+    const redirectMessage = error?.response?.status === 302
+      ? 'Invite request was redirected. Verify API base URL and CORS settings.'
+      : null
+    const serverMessage = redirectMessage
+      || error?.data?.message
+      || error?.message
+      || 'Unable to send invite. Please try again.'
+    inviteError.value = serverMessage
   }
   finally {
     inviteSending.value = false
@@ -258,46 +380,14 @@ async function handleInviteSubmit({ data }) {
       :title="errorMessage"
     />
 
-    <div v-if="loading" class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="index in 4" :key="index" class="h-32 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div class="h-full w-full animate-pulse rounded-xl bg-gray-100" />
+    <div v-if="loading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="space-y-4">
+        <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
       </div>
     </div>
 
     <div v-else>
-      <div v-if="isEmptyState" class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
-        <p class="mb-2 text-lg font-semibold text-gray-700">
-          No tasks added yet
-        </p>
-        <p class="text-sm text-gray-500">
-          Start by creating a task to keep this team on track.
-        </p>
-      </div>
-
-      <div v-else>
-        <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          <UCard
-            v-for="task in tasksWithMeta"
-            :key="task.id"
-            :ui="{ body: { padding: 'p-5' } }"
-            class="rounded-2xl border border-gray-200 shadow-sm transition-all duration-200 hover:border-primary/60"
-          >
-            <div class="flex flex-col gap-3">
-              <div class="flex items-start justify-between gap-4">
-                <h3 class="text-md font-semibold text-gray-900">
-                  {{ task.title }}
-                </h3>
-                <span
-                  class="inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-xs font-semibold border"
-                  :class="task.meta.chipClass"
-                >
-                  {{ task.meta.label }}
-                </span>
-              </div>
-            </div>
-          </UCard>
-        </div>
-      </div>
+      <TaskTable :tasks="tasks" />
     </div>
 
     <UModal
