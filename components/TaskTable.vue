@@ -154,25 +154,10 @@ const processedRows = computed(() => rows.value.map(task => ({
         <thead class="bg-gray-50">
           <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <th scope="col" class="px-4 py-3">
-              ID
-            </th>
-            <th scope="col" class="px-4 py-3">
               Title
             </th>
             <th scope="col" class="px-4 py-3">
-              Status
-            </th>
-            <th scope="col" class="px-4 py-3">
-              Priority
-            </th>
-            <th scope="col" class="px-4 py-3">
-              Assignee
-            </th>
-            <th scope="col" class="px-4 py-3">
               Category
-            </th>
-            <th scope="col" class="px-4 py-3">
-              Due Date
             </th>
           </tr>
         </thead>
@@ -182,9 +167,6 @@ const processedRows = computed(() => rows.value.map(task => ({
             :key="row.task.id"
             class="bg-white transition-colors hover:bg-gray-50"
           >
-            <td class="whitespace-nowrap px-4 py-4 font-mono text-xs text-gray-500">
-              {{ row.task.readable_id }}
-            </td>
             <td class="max-w-[260px] px-4 py-4">
               <span
                 class="block truncate text-sm font-semibold text-gray-900"
@@ -193,65 +175,11 @@ const processedRows = computed(() => rows.value.map(task => ({
                 {{ row.task.title }}
               </span>
             </td>
-            <td class="whitespace-nowrap px-4 py-4">
-              <span
-                class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                :class="row.status.classes"
-              >
-                {{ row.status.label }}
-              </span>
-            </td>
-            <td class="whitespace-nowrap px-4 py-4">
-              <div class="flex items-center gap-2 text-sm font-medium" :class="row.priority.classes">
-                <!-- <span
-                  class="h-4 w-4" :class="[row.priority.icon]"
-                  aria-hidden="true"
-                /> -->
-                <span>{{ row.priority.label }}</span>
-              </div>
-            </td>
-            <td class="px-4 py-4">
-              <div class="flex items-center gap-3">
-                <!-- <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500">
-                  <template v-if="row.task.assignee">
-                    <img
-                      v-if="row.task.assignee.avatar_url"
-                      :src="row.task.assignee.avatar_url"
-                      :alt="row.task.assignee.name"
-                      class="h-9 w-9 rounded-full object-cover"
-                    >
-                    <span v-else>
-                      {{ getInitials(row.task.assignee.name) }}
-                    </span>
-                  </template>
-                  <span v-else class="i-heroicons-user-circle h-6 w-6 text-gray-400" aria-hidden="true" />
-                </div> -->
-                <div class="flex flex-col">
-                  <span class="text-sm font-medium text-gray-900">
-                    {{ row.task.assignee?.name ?? 'Unassigned' }}
-                  </span>
-                  <span class="text-xs text-gray-400">
-                    {{ row.task.assignee?.email ?? '—' }}
-                  </span>
-                </div>
-              </div>
-            </td>
+
             <td class="whitespace-nowrap px-4 py-4">
               <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
                 {{ row.task.category }}
               </span>
-            </td>
-            <td class="whitespace-nowrap px-4 py-4">
-              <div class="flex items-center gap-2 text-sm font-medium" :class="row.due.classes">
-                <!-- <span
-                  v-if="row.due.icon"
-                  class="h-4 w-4" :class="[row.due.icon]"
-                  aria-hidden="true"
-                /> -->
-                <span>
-                  {{ row.due.label }}
-                </span>
-              </div>
             </td>
           </tr>
         </tbody>

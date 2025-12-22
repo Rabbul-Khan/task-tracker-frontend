@@ -13,176 +13,77 @@ const errorMessage = ref('')
 const tasks = ref([])
 const lastRefreshedAt = ref(null)
 
+const teamId = computed(() => Number(route.params.id))
+
 const mockTaskDatabase = {
   1: [
     {
-      id: '1',
-      readable_id: 'TSK-101',
-      title: 'Fix login page CSS overflow on mobile devices',
-      description: 'Login button hidden on iPhone SE',
-      status: 'in_progress',
-      priority: 'high',
-      category: 'bugfix',
-      due_date: '2024-10-14T00:00:00Z',
-      assignee: {
-        id: 'u1',
-        name: 'Asif Hayat',
-        email: 'asif@gmail.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      },
-      created_at: '2024-10-10T09:00:00Z',
+      team_id: 1,
+      title: 'Implement Amadeus resissue',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
     {
-      id: '2',
-      readable_id: 'TSK-102',
-      title: 'Integrate Stripe Payment Gateway',
-      description: null,
-      status: 'todo',
-      priority: 'critical',
-      category: 'feature',
-      due_date: '2025-10-20T00:00:00Z',
-      assignee: {
-        id: 'u2',
-        name: 'Sarah Jenkins',
-        email: 'sarah@example.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=sarah',
-      },
-      created_at: '2024-10-11T14:30:00Z',
+      team_id: 1,
+      title: 'Implement Amadeus rebook',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
     {
-      id: '3',
-      readable_id: 'TSK-104',
-      title: 'Research competitors',
-      description: null,
-      status: 'done',
-      priority: 'low',
-      category: 'research',
-      due_date: null,
-      assignee: {
-        id: 'u3',
-        name: 'Mike Ross',
-        email: 'mike@example.com',
-        avatar_url: null,
-      },
-      created_at: '2024-09-28T09:15:00Z',
+      team_id: 1,
+      title: 'Implement Farelogix resissue',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
   ],
   2: [
     {
-      id: '21',
-      readable_id: 'TSK-220',
-      title: 'API latency investigation',
-      description: 'Trace slow query path impacting dashboard response times.',
-      status: 'review',
-      priority: 'critical',
-      category: 'maintenance',
-      due_date: '2025-12-01T00:00:00Z',
-      assignee: {
-        id: 'u4',
-        name: 'Devon Miles',
-        email: 'devon@example.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=devon',
-      },
-      created_at: '2025-11-10T15:45:00Z',
+      team_id: 2,
+      title: 'Design Amadeus resissue',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
     {
-      id: '22',
-      readable_id: 'TSK-221',
-      title: 'Implement Auth0 integration',
-      description: null,
-      status: 'in_progress',
-      priority: 'medium',
-      category: 'feature',
-      due_date: '2025-12-14T00:00:00Z',
-      assignee: {
-        id: 'u5',
-        name: 'Linh Tran',
-        email: 'linh@example.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=linh',
-      },
-      created_at: '2025-11-18T10:20:00Z',
+      team_id: 2,
+      title: 'Design Amadeus rebook',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
     {
-      id: '23',
-      readable_id: 'TSK-222',
-      title: 'Automate nightly backups',
-      description: 'Set up new backup pipeline in AWS.',
-      status: 'todo',
-      priority: 'low',
-      category: 'maintenance',
-      due_date: '2026-01-05T00:00:00Z',
-      assignee: null,
-      created_at: '2025-11-05T08:05:00Z',
-    },
-    {
-      id: '24',
-      readable_id: 'TSK-223',
-      title: 'Postmortem: release 2.4',
-      description: 'Document findings and share with stakeholders.',
-      status: 'done',
-      priority: 'medium',
-      category: 'quality',
-      due_date: '2025-11-20T00:00:00Z',
-      assignee: {
-        id: 'u6',
-        name: 'Priya Patel',
-        email: 'priya@example.com',
-        avatar_url: null,
-      },
-      created_at: '2025-11-02T12:10:00Z',
-    },
-  ],
-  3: [
-    {
-      id: '31',
-      readable_id: 'TSK-301',
-      title: 'Component library audit',
-      description: null,
-      status: 'review',
-      priority: 'medium',
-      category: 'improvement',
-      due_date: '2025-12-10T00:00:00Z',
-      assignee: {
-        id: 'u7',
-        name: 'Amelia Chen',
-        email: 'amelia@example.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=amelia',
-      },
-      created_at: '2025-11-12T09:40:00Z',
-    },
-    {
-      id: '32',
-      readable_id: 'TSK-302',
-      title: 'Convert forms to Composition API',
-      description: 'Migrate legacy form logic to Composition API patterns.',
-      status: 'in_progress',
-      priority: 'high',
-      category: 'refactor',
-      due_date: '2026-01-15T00:00:00Z',
-      assignee: {
-        id: 'u8',
-        name: 'Jacob Miller',
-        email: 'jacob@example.com',
-        avatar_url: 'https://i.pravatar.cc/150?u=jacob',
-      },
-      created_at: '2025-11-25T11:25:00Z',
-    },
-    {
-      id: '33',
-      readable_id: 'TSK-303',
-      title: 'QA smoke suite expansion',
-      description: null,
-      status: 'todo',
-      priority: 'low',
-      category: 'quality',
-      due_date: '2025-12-18T00:00:00Z',
-      assignee: {
-        id: 'u9',
-        name: 'Daniel Ortega',
-        email: 'daniel@example.com',
-        avatar_url: null,
-      },
-      created_at: '2025-11-15T07:55:00Z',
+      team_id: 2,
+      title: 'Design Farelogix resissue',
+      category: 'Feature',
+      // assignee: {
+      //   id: 'u1',
+      //   name: 'Asif Hayat',
+      //   email: 'asif@gmail.com',
+      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
+      // },
     },
   ],
 }
@@ -202,8 +103,6 @@ const mockTeams = {
   },
 }
 
-const teamId = computed(() => Number(route.params.id))
-
 const teamMeta = computed(() => mockTeams[teamId.value] ?? null)
 
 const teamName = computed(() => {
@@ -211,18 +110,6 @@ const teamName = computed(() => {
     return teamMeta.value.name
   }
   return Number.isNaN(teamId.value) ? 'Team' : `Team #${teamId.value}`
-})
-
-const lastRefreshedLabel = computed(() => {
-  if (!lastRefreshedAt.value) {
-    return ''
-  }
-  return lastRefreshedAt.value.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 })
 
 let activeRequestToken = 0
@@ -269,47 +156,37 @@ watch(teamId, (id) => {
   loadTasks(id)
 }, { immediate: true })
 
-const inviteModalOpen = ref(false)
-const inviteSending = ref(false)
-const inviteError = ref('')
-const inviteSuccess = ref(false)
-const lastInvitedEmail = ref('')
+const addTaskModalOpen = ref(false)
+const addingTask = ref(false)
+const taskError = ref('')
+const taskAddSuccess = ref(false)
 
-const inviteSchema = z.object({
-  email: z.string({ required_error: 'Email is required' }).email('Enter a valid email address'),
+const addTaskSchema = z.object({
+  task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
 })
 
-const inviteState = reactive({
-  email: '',
+const taskState = reactive({
+  task: '',
 })
 
-function openInviteModal() {
-  inviteModalOpen.value = true
+function openAddTaskModal() {
+  addTaskModalOpen.value = true
 }
 
-async function handleInviteSubmit({ data }) {
-  inviteSending.value = true
-  inviteError.value = ''
-  inviteSuccess.value = false
-
-  const { email } = data
-  const targetTeamId = Number(teamId.value)
-
-  if (!Number.isFinite(targetTeamId)) {
-    inviteError.value = 'Invalid team information. Refresh and try again.'
-    inviteSending.value = false
-    return
-  }
+async function handleAddTaskSubmit() {
+  addingTask.value = true
+  taskError.value = ''
+  taskAddSuccess.value = false
 
   const token = localStorage.getItem('token')
   if (!token) {
-    inviteError.value = 'Missing authentication token. Please sign in again.'
-    inviteSending.value = false
+    taskError.value = 'Missing authentication token. Please sign in again.'
+    addingTask.value = false
     return
   }
 
   try {
-    await fetch(`${BASE_URL}/teams/invite`, {
+    const response = await fetch(`${BASE_URL}/tasks`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -318,28 +195,36 @@ async function handleInviteSubmit({ data }) {
         'X-Requested-With': 'XMLHttpRequest',
       },
       body: JSON.stringify({
-        team_id: targetTeamId,
-        email,
+        team_id: teamId.value,
+        title: taskState.task,
+        category: 'Feature',
       }),
       redirect: 'manual',
     })
-    inviteSuccess.value = true
-    lastInvitedEmail.value = email
-    inviteState.email = ''
+
+    if (!response.ok) {
+      throw new Error('Failed to add task')
+    }
+
+    taskAddSuccess.value = true
+    taskState.task = ''
+
+    // Reload tasks after adding
+    await loadTasks(teamId.value)
   }
   catch (error) {
-    console.error('Invite failed', error)
+    console.error('Adding task failed', error)
     const redirectMessage = error?.response?.status === 302
-      ? 'Invite request was redirected. Verify API base URL and CORS settings.'
+      ? 'Add task request was redirected. Verify API base URL and CORS settings.'
       : null
     const serverMessage = redirectMessage
       || error?.data?.message
       || error?.message
-      || 'Unable to send invite. Please try again.'
-    inviteError.value = serverMessage
+      || 'Unable to add task. Please try again.'
+    taskError.value = serverMessage
   }
   finally {
-    inviteSending.value = false
+    addingTask.value = false
   }
 }
 </script>
@@ -351,21 +236,18 @@ async function handleInviteSubmit({ data }) {
         <h1 class="text-3xl font-bold text-gray-900">
           {{ teamName }}
         </h1>
-        <div v-if="lastRefreshedLabel" class="text-sm text-gray-400">
-          Updated {{ lastRefreshedLabel }}
-        </div>
       </div>
 
       <div class="flex items-center gap-4 self-start md:self-auto">
         <UButton
           color="primary"
           size="md"
-          icon="i-heroicons-envelope-open"
+          icon="i-heroicons-plus"
           class="px-5"
-          :disabled="inviteSending"
-          @click="openInviteModal"
+          :disabled="addingTask"
+          @click="openAddTaskModal"
         >
-          Invite teammate
+          Add Task
         </UButton>
       </div>
     </div>
@@ -391,26 +273,26 @@ async function handleInviteSubmit({ data }) {
     </div>
 
     <UModal
-      v-if="inviteModalOpen" v-model:open="inviteModalOpen"
+      v-if="addTaskModalOpen" v-model:open="addTaskModalOpen"
       class="max-w-[600px]"
       :ui="{ width: 'sm:max-w-md' }"
-      title="Invite teammate" description="Share a one-time invite link with someone who should join this team."
+      title="Add Task" description="Add a new task for today"
     >
       <template #body>
         <UForm
-          :schema="inviteSchema"
-          :state="inviteState"
+          :schema="addTaskSchema"
+          :state="taskState"
           class="space-y-6"
           :validate-on="['change', 'input']"
-          @submit="handleInviteSubmit"
+          @submit="handleAddTaskSubmit"
         >
-          <UFormField label="Email address" name="email" :ui="{ label: 'text-text font-medium' }">
+          <UFormField label="Task" name="task" :ui="{ label: 'text-text font-medium' }">
             <UInput
-              v-model="inviteState.email"
-              type="email"
-              placeholder="member@company.com"
+              v-model="taskState.task"
+              type="text"
+              placeholder="What needs to be done today?"
               size="lg"
-              :disabled="inviteSending"
+              :disabled="addingTask"
               class="w-full"
               :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
               autofocus
@@ -421,27 +303,27 @@ async function handleInviteSubmit({ data }) {
             type="submit"
             size="lg"
             color="primary"
-            :loading="inviteSending"
+            :loading="addingTask"
             class="px-8"
           >
-            Send invite
+            Add Task
           </UButton>
 
           <UAlert
-            v-if="inviteSuccess"
+            v-if="taskAddSuccess"
             color="success"
             variant="soft"
             icon="i-heroicons-check-circle"
-            title="Invite sent"
-            :description="`We emailed a secure link to ${lastInvitedEmail}.`"
+            title="Task Added"
+            description="Added new task."
           />
 
           <UAlert
-            v-if="inviteError"
+            v-if="taskError"
             color="error"
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
-            :title="inviteError"
+            :title="taskError"
           />
         </UForm>
       </template>
