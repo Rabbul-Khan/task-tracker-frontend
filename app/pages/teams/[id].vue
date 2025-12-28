@@ -2,7 +2,7 @@
 import { useRoute } from '#imports'
 import { computed, reactive, ref, watch } from 'vue'
 import { z } from 'zod'
-import TaskTable from '../../../components/TaskTable.vue'
+import TaskTable from '~/components/TaskTable.vue'
 
 const BASE_URL = 'http://localhost:8003/api'
 

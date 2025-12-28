@@ -1,63 +1,11 @@
 <script setup>
+import { useTeams } from '#imports'
 import { z } from 'zod'
 
-const BASE_URL = 'http://localhost:8003/api'
-
-// const teams = ref([
-//   {
-//     id: 1,
-//     name: 'Design Squad',
-//     ownerName: 'Alice Johnson',
-//     ownerAvatar: 'https://i.pravatar.cc/100?img=1',
-//     createdAt: '2024-10-12',
-//     membersCount: 8,
-//   },
-//   {
-//     id: 2,
-//     name: 'Backend Ninjas',
-//     ownerName: 'John Doe',
-//     ownerAvatar: 'https://i.pravatar.cc/100?img=2',
-//     createdAt: '2024-11-03',
-//     membersCount: 5,
-//   },
-//   {
-//     id: 3,
-//     name: 'Frontend Force',
-//     ownerName: 'Emma Wilson',
-//     ownerAvatar: 'https://i.pravatar.cc/100?img=3',
-//     createdAt: '2024-11-15',
-//     membersCount: 6,
-//   },
-//   {
-//     id: 4,
-//     name: 'DevOps Warriors',
-//     ownerName: 'Michael Chen',
-//     ownerAvatar: 'https://i.pravatar.cc/100?img=4',
-//     createdAt: '2024-10-28',
-//     membersCount: 4,
-//   },
-//   {
-//     id: 5,
-//     name: 'QA Champions',
-//     ownerName: 'Sarah Martinez',
-//     ownerAvatar: 'https://i.pravatar.cc/100?img=5',
-//     createdAt: '2024-11-20',
-//     membersCount: 7,
-//   },
-// ])
-
-const teams = ref([])
-
-const isModalOpen = ref(false)
-const loading = ref(false)
-const errorMessage = ref('')
+const { getTeams, openModal, closeModal, createTeam, teams, loading, isModalOpen, error, state } = useTeams()
 
 const schema = z.object({
   teamName: z.string().min(3, 'Team name must be at least 3 characters'),
-})
-
-const state = reactive({
-  teamName: undefined,
 })
 
 function formatDate(dateStr) {
@@ -68,109 +16,12 @@ function formatDate(dateStr) {
   })
 }
 
-function openModal() {
-  isModalOpen.value = true
-}
-
-function closeModal() {
-  isModalOpen.value = false
-  state.teamName = undefined
-  errorMessage.value = ''
-}
-
 async function handleCreateTeam(event) {
-  loading.value = true
-  errorMessage.value = ''
-
-  const token = localStorage.getItem('token')
-  if (!token) {
-    errorMessage.value = 'Missing authentication token. Please sign in again.'
-    loading.value = false
-    return
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/teams`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: event.data.teamName,
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || 'Failed to create team')
-    }
-
-    const newTeam = await response.json()
-
-    // Add the new team to the list (handle missing fields gracefully)
-    teams.value.push({
-      id: newTeam.id || Date.now(),
-      name: newTeam.name || event.data.teamName,
-      ownerName: newTeam.owner?.name,
-      ownerAvatar: newTeam.owner?.avatar,
-      createdAt: newTeam.created_at,
-      membersCount: newTeam.members_count,
-    })
-
-    closeModal()
-  }
-  catch (error) {
-    console.error('Failed to create team:', error)
-    errorMessage.value = error?.message || 'Unable to create team. Please try again.'
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-async function getTeam() {
-  loading.value = true
-  errorMessage.value = ''
-
-  const token = localStorage.getItem('token')
-  if (!token) {
-    errorMessage.value = 'Missing authentication token. Please sign in again.'
-    loading.value = false
-    return
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/teams`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    })
-    const data = await response.json()
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || 'Failed to fetch team')
-    }
-
-    teams.value = data.data
-
-    closeModal()
-  }
-  catch (error) {
-    console.error('Failed to create team:', error)
-    errorMessage.value = error?.message || 'Unable to create team. Please try again.'
-  }
-  finally {
-    loading.value = false
-  }
+  createTeam(event)
 }
 
 onMounted(() => {
-  getTeam()
+  getTeams()
 })
 </script>
 
@@ -193,9 +44,14 @@ onMounted(() => {
     <!-- <h2 class="text-sm mb-5">
       Here is a list of teams you created
     </h2> -->
+
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary animate-spin" />
+    </div>
+
     <!-- Your teams content goes here -->
-    <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-      {{ console.log(teams) }}
+    <div v-else class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       <div
         v-for="team in teams"
         :key="team.id"
@@ -300,11 +156,11 @@ onMounted(() => {
             </UFormField>
 
             <UAlert
-              v-if="errorMessage"
+              v-if="error"
               color="error"
               variant="soft"
               icon="i-heroicons-exclamation-triangle"
-              :title="errorMessage"
+              :title="error"
             />
 
             <div class="flex justify-end gap-3 pt-2">
