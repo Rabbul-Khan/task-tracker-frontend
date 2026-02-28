@@ -10,7 +10,9 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "clean": "npx rimraf node_modules .nuxt .output .nitro .data .cache dist",
+    "rebuild": "pnpm clean && pnpm install && pnpm build"
   },
   "dependencies": {
     "@nuxt/eslint": "1.9.0",
