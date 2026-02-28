@@ -1,5 +1,8 @@
 <script setup>
+import { useAuth } from '~/composables/useAuth'
+
 // const user = useState('user', () => null)
+const { logout } = useAuth()
 </script>
 
 <template>
@@ -28,7 +31,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="text-gray-600"><path fill="currentColor" d="M12 21q-3.775 0-6.387-2.613T3 12q0-3.45 2.25-5.988T11 3.05q.325-.05.575.088t.4.362q.15.225.163.525t-.188.575q-.425.65-.638 1.375T11.1 7.5q0 2.25 1.575 3.825T16.5 12.9q.775 0 1.538-.225t1.362-.625q.275-.175.563-.162t.512.137q.25.125.388.375t.087.6q-.35 3.45-2.937 5.725T12 21" /></svg>
         </button>
 
-        <!-- User Info with Dropdown -->
+        <!-- User Info -->
         <div class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors">
           <span class="text-sm font-medium text-gray-700">{{ user?.name || 'User' }}</span>
           <img
@@ -36,9 +39,16 @@
             alt="User avatar"
             class="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
           >
-          <!-- Dropdown Arrow -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" class="text-gray-600"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6l-6-6z" /></svg>
         </div>
+
+        <!-- Logout Button -->
+        <button
+          class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
+          title="Logout"
+          @click="logout"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="text-gray-600 group-hover:text-red-500 transition-colors"><path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h7v2zm11-4l-1.375-1.45l2.55-2.55H9v-2h8.175l-2.55-2.55L16 7l5 5z" /></svg>
+        </button>
       </div>
     </header>
 
