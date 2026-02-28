@@ -3,7 +3,7 @@ import { useRoute } from '#imports'
 import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
-import { getTasksByTeam } from '~/services/tasks'
+import { getTasksByTeam, updateTask } from '~/services/tasks'
 
 const BASE_URL = 'http://localhost:8003/api'
 
@@ -58,6 +58,19 @@ const addingTask = ref(false)
 const taskError = ref('')
 // eslint-disable-next-line no-undef
 const toast = useToast()
+
+// Edit task state
+const editTaskModalOpen = ref(false)
+const editingTask = ref(false)
+const editTaskError = ref('')
+const editingTaskId = ref(null)
+const editTaskState = reactive({
+  title: '',
+})
+
+const editTaskSchema = z.object({
+  title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title is required'),
+})
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
@@ -131,6 +144,40 @@ async function handleAddTaskSubmit() {
     addingTask.value = false
   }
 }
+
+function openEditTaskModal(task) {
+  editingTaskId.value = task.id
+  editTaskState.title = task.title
+  editTaskError.value = ''
+  editTaskModalOpen.value = true
+}
+
+async function handleEditTaskSubmit() {
+  editingTask.value = true
+  editTaskError.value = ''
+
+  try {
+    await updateTask(getToken(), editingTaskId.value, editTaskState.title)
+
+    editTaskModalOpen.value = false
+
+    toast.add({
+      title: 'Task Updated',
+      description: 'The task has been updated successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+
+    await loadTasks()
+  }
+  catch (err) {
+    console.error('Updating task failed', err)
+    editTaskError.value = err?.message || 'Unable to update task. Please try again.'
+  }
+  finally {
+    editingTask.value = false
+  }
+}
 </script>
 
 <template>
@@ -173,7 +220,7 @@ async function handleAddTaskSubmit() {
     </div>
 
     <div v-else>
-      <TaskTable :tasks="tasks" />
+      <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" />
     </div>
 
     <UModal
@@ -219,6 +266,68 @@ async function handleAddTaskSubmit() {
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
             :title="taskError"
+          />
+        </UForm>
+      </template>
+    </UModal>
+
+    <!-- Edit Task Modal -->
+    <UModal
+      v-if="editTaskModalOpen" v-model:open="editTaskModalOpen"
+      class="max-w-[600px]"
+      :ui="{ width: 'sm:max-w-md' }"
+      title="Edit Task" description="Update the task title"
+    >
+      <template #body>
+        <UForm
+          :schema="editTaskSchema"
+          :state="editTaskState"
+          class="space-y-6"
+          :validate-on="['change', 'input']"
+          @submit="handleEditTaskSubmit"
+        >
+          <UFormField label="Task Title" name="title" :ui="{ label: 'text-text font-medium' }">
+            <UInput
+              v-model="editTaskState.title"
+              type="text"
+              placeholder="Update task title"
+              size="lg"
+              :disabled="editingTask"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+              autofocus
+            />
+          </UFormField>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              type="button"
+              size="lg"
+              color="error"
+              variant="outline"
+              class="px-8"
+              :disabled="editingTask"
+              @click="editTaskModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              type="submit"
+              size="lg"
+              color="primary"
+              :loading="editingTask"
+              class="px-8"
+            >
+              Update
+            </UButton>
+          </div>
+
+          <UAlert
+            v-if="editTaskError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="editTaskError"
           />
         </UForm>
       </template>
