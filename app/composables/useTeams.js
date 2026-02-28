@@ -1,9 +1,11 @@
+import { getTasksByTeam } from '~/services/tasks'
 import { createNewTeam, getAllTeams } from '~/services/teams'
 
 export function useTeams() {
   const loading = ref(false)
   const error = ref('')
   const teams = ref([])
+  const teamTasks = ref({})
   const isModalOpen = ref(false)
   const state = reactive({
     teamName: undefined,
@@ -82,5 +84,20 @@ export function useTeams() {
     }
   }
 
-  return { getTeams, openModal, closeModal, createTeam, teams, loading, isModalOpen, error, state }
+  async function getTeamTasks(teamId) {
+    try {
+      const data = await getTasksByTeam(getToken(), teamId)
+      teamTasks.value[teamId] = data.data
+    }
+    catch (err) {
+      console.error(`Failed to fetch tasks for team ${teamId}:`, err)
+      teamTasks.value[teamId] = []
+    }
+  }
+
+  async function getAllTeamsTasks() {
+    await Promise.all(teams.value.map(team => getTeamTasks(team.id)))
+  }
+
+  return { getTeams, openModal, closeModal, createTeam, getTeamTasks, getAllTeamsTasks, teams, teamTasks, loading, isModalOpen, error, state }
 }

@@ -190,7 +190,6 @@ const processedRows = computed(() => rows.value.map(task => ({
       v-else
       class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm"
     >
-      <span class="i-heroicons-clipboard-document-list h-12 w-12 text-gray-300" aria-hidden="true" />
       <div class="space-y-1">
         <p class="text-lg font-semibold text-gray-700">
           No tasks found
@@ -199,9 +198,6 @@ const processedRows = computed(() => rows.value.map(task => ({
           Create a task to get this team moving.
         </p>
       </div>
-      <UButton color="primary" icon="i-heroicons-plus" @click="handleCreateClick">
-        Create Task
-      </UButton>
     </div>
   </div>
 </template>
