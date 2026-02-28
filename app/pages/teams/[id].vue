@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
 import { deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
+import { inviteToTeam } from '~/services/teams'
 
 const BASE_URL = 'http://localhost:8003/api'
 
@@ -77,6 +78,19 @@ const deleteTaskModalOpen = ref(false)
 const deletingTask = ref(false)
 const deletingTaskId = ref(null)
 const deletingTaskTitle = ref('')
+
+// Invite member state
+const inviteModalOpen = ref(false)
+const inviting = ref(false)
+const inviteError = ref('')
+
+const inviteSchema = z.object({
+  email: z.string({ required_error: 'Email is required' }).email('Please enter a valid email address'),
+})
+
+const inviteState = reactive({
+  email: '',
+})
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
@@ -221,6 +235,38 @@ async function handleDeleteTask() {
     deletingTask.value = false
   }
 }
+
+function openInviteModal() {
+  inviteError.value = ''
+  inviteState.email = ''
+  inviteModalOpen.value = true
+}
+
+async function handleInviteSubmit() {
+  inviting.value = true
+  inviteError.value = ''
+
+  try {
+    await inviteToTeam(getToken(), teamId.value, inviteState.email)
+
+    inviteModalOpen.value = false
+    inviteState.email = ''
+
+    toast.add({
+      title: 'Invitation Sent',
+      description: 'The invitation has been sent successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+  }
+  catch (err) {
+    console.error('Invite failed', err)
+    inviteError.value = err?.message || 'Unable to send invitation. Please try again.'
+  }
+  finally {
+    inviting.value = false
+  }
+}
 </script>
 
 <template>
@@ -233,6 +279,16 @@ async function handleDeleteTask() {
       </div>
 
       <div class="flex items-center gap-4 self-start md:self-auto">
+        <UButton
+          color="primary"
+          size="md"
+          icon="i-heroicons-envelope"
+          variant="outline"
+          class="px-5"
+          @click="openInviteModal"
+        >
+          Invite Member
+        </UButton>
         <UButton
           color="primary"
           size="md"
@@ -423,6 +479,68 @@ async function handleDeleteTask() {
             </UButton>
           </div>
         </div>
+      </template>
+    </UModal>
+
+    <!-- Invite Member Modal -->
+    <UModal
+      v-if="inviteModalOpen" v-model:open="inviteModalOpen"
+      class="max-w-[600px]"
+      :ui="{ width: 'sm:max-w-md' }"
+      title="Invite Member" description="Send an invitation to join this team"
+    >
+      <template #body>
+        <UForm
+          :schema="inviteSchema"
+          :state="inviteState"
+          class="space-y-6"
+          :validate-on="['change', 'input']"
+          @submit="handleInviteSubmit"
+        >
+          <UFormField label="Email Address" name="email" :ui="{ label: 'text-text font-medium' }">
+            <UInput
+              v-model="inviteState.email"
+              type="email"
+              placeholder="Enter email address"
+              size="lg"
+              :disabled="inviting"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+              autofocus
+            />
+          </UFormField>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              type="button"
+              size="lg"
+              color="error"
+              variant="outline"
+              class="px-8"
+              :disabled="inviting"
+              @click="inviteModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              type="submit"
+              size="lg"
+              color="primary"
+              :loading="inviting"
+              class="px-8"
+            >
+              Send Invite
+            </UButton>
+          </div>
+
+          <UAlert
+            v-if="inviteError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="inviteError"
+          />
+        </UForm>
       </template>
     </UModal>
   </div>
