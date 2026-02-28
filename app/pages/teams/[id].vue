@@ -1,8 +1,9 @@
 <script setup>
 import { useRoute } from '#imports'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
+import { getTasksByTeam } from '~/services/tasks'
 
 const BASE_URL = 'http://localhost:8003/api'
 
@@ -11,155 +12,52 @@ const route = useRoute()
 const loading = ref(false)
 const errorMessage = ref('')
 const tasks = ref([])
-const lastRefreshedAt = ref(null)
 
 const teamId = computed(() => Number(route.params.id))
 
-const mockTaskDatabase = {
-  1: [
-    {
-      team_id: 1,
-      title: 'Implement Amadeus resissue',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-    {
-      team_id: 1,
-      title: 'Implement Amadeus rebook',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-    {
-      team_id: 1,
-      title: 'Implement Farelogix resissue',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-  ],
-  2: [
-    {
-      team_id: 2,
-      title: 'Design Amadeus resissue',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-    {
-      team_id: 2,
-      title: 'Design Amadeus rebook',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-    {
-      team_id: 2,
-      title: 'Design Farelogix resissue',
-      category: 'Feature',
-      // assignee: {
-      //   id: 'u1',
-      //   name: 'Asif Hayat',
-      //   email: 'asif@gmail.com',
-      //   avatar_url: 'https://i.pravatar.cc/150?u=asif',
-      // },
-    },
-  ],
-}
-
-const mockTeams = {
-  1: {
-    name: 'Design Squad',
-    description: 'Designers focused on crafting delightful experiences and validating UX improvements.',
-  },
-  2: {
-    name: 'Backend Ninjas',
-    description: 'API and infrastructure engineers keeping the platform fast, stable, and secure.',
-  },
-  3: {
-    name: 'Frontend Force',
-    description: 'Frontend specialists delivering polished, performant interfaces across the product.',
-  },
-}
-
-const teamMeta = computed(() => mockTeams[teamId.value] ?? null)
-
 const teamName = computed(() => {
-  if (teamMeta.value?.name) {
-    return teamMeta.value.name
-  }
   return Number.isNaN(teamId.value) ? 'Team' : `Team #${teamId.value}`
 })
 
-let activeRequestToken = 0
+function getToken() {
+  if (import.meta.client) {
+    return localStorage.getItem('token')
+  }
+  return null
+}
 
-async function loadTasks(id) {
-  const numericId = Number(id)
-  if (!Number.isFinite(numericId)) {
+async function loadTasks() {
+  const id = teamId.value
+  if (!Number.isFinite(id)) {
     tasks.value = []
     return
   }
 
-  const requestToken = ++activeRequestToken
   loading.value = true
   errorMessage.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 350))
-
-    const data = mockTaskDatabase[numericId] ?? []
-    if (activeRequestToken !== requestToken) {
-      return
-    }
-
-    tasks.value = data.map(task => ({
-      ...task,
-      assignee: task.assignee ? { ...task.assignee } : null,
-    }))
-    lastRefreshedAt.value = new Date()
+    const data = await getTasksByTeam(getToken(), id)
+    tasks.value = data.data ?? []
   }
-  catch (error) {
-    console.error('Failed to load tasks', error)
-    if (activeRequestToken === requestToken) {
-      errorMessage.value = 'Unable to load tasks right now. Please try again shortly.'
-    }
+  catch (err) {
+    console.error('Failed to load tasks', err)
+    errorMessage.value = err?.message || 'Unable to load tasks right now. Please try again shortly.'
   }
   finally {
-    if (activeRequestToken === requestToken) {
-      loading.value = false
-    }
+    loading.value = false
   }
 }
 
-watch(teamId, (id) => {
-  loadTasks(id)
-}, { immediate: true })
+onMounted(() => {
+  loadTasks()
+})
 
 const addTaskModalOpen = ref(false)
 const addingTask = ref(false)
 const taskError = ref('')
-const taskAddSuccess = ref(false)
+// eslint-disable-next-line no-undef
+const toast = useToast()
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
@@ -176,7 +74,6 @@ function openAddTaskModal() {
 async function handleAddTaskSubmit() {
   addingTask.value = true
   taskError.value = ''
-  taskAddSuccess.value = false
 
   const token = localStorage.getItem('token')
   if (!token) {
@@ -206,11 +103,18 @@ async function handleAddTaskSubmit() {
       throw new Error('Failed to add task')
     }
 
-    taskAddSuccess.value = true
     taskState.task = ''
+    addTaskModalOpen.value = false
+
+    toast.add({
+      title: 'Task Added',
+      description: 'Your new task has been added successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
 
     // Reload tasks after adding
-    await loadTasks(teamId.value)
+    await loadTasks()
   }
   catch (error) {
     console.error('Adding task failed', error)
@@ -231,7 +135,7 @@ async function handleAddTaskSubmit() {
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
       <div class="space-y-2">
         <h1 class="text-3xl font-bold text-gray-900">
           {{ teamName }}
@@ -308,15 +212,6 @@ async function handleAddTaskSubmit() {
           >
             Add Task
           </UButton>
-
-          <UAlert
-            v-if="taskAddSuccess"
-            color="success"
-            variant="soft"
-            icon="i-heroicons-check-circle"
-            title="Task Added"
-            description="Added new task."
-          />
 
           <UAlert
             v-if="taskError"
