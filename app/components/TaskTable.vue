@@ -9,7 +9,7 @@ const props = defineProps({
 })
 
 // const emit = defineEmits(['create-task'])
-const emit = defineEmits(['editTask'])
+const emit = defineEmits(['editTask', 'deleteTask'])
 
 const rows = computed(() => props.tasks ?? [])
 const hasTasks = computed(() => rows.value.length > 0)
@@ -187,13 +187,22 @@ const processedRows = computed(() => rows.value.map(task => ({
             </td>
 
             <td class="whitespace-nowrap px-4 py-4 text-right">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                icon="i-heroicons-pencil-square"
-                @click="emit('editTask', row.task)"
-              />
+              <div class="flex items-center justify-end gap-1">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-pencil-square"
+                  @click="emit('editTask', row.task)"
+                />
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-trash"
+                  @click="emit('deleteTask', row.task)"
+                />
+              </div>
             </td>
           </tr>
         </tbody>
