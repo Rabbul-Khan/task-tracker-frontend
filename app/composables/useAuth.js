@@ -72,14 +72,5 @@ export function useAuth() {
     }
   }
 
-  function logout() {
-    token.value = null
-    if (import.meta.client) {
-      localStorage.removeItem('token')
-    }
-    // eslint-disable-next-line no-undef
-    navigateTo('/login')
-  }
-
-  return { loading, error, login, register, logout, token, success }
+  return { loading, error, login, register, token, success }
 }
