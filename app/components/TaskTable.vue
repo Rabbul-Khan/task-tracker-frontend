@@ -9,6 +9,7 @@ const props = defineProps({
 })
 
 // const emit = defineEmits(['create-task'])
+const emit = defineEmits(['editTask', 'deleteTask'])
 
 const rows = computed(() => props.tasks ?? [])
 const hasTasks = computed(() => rows.value.length > 0)
@@ -159,6 +160,9 @@ const processedRows = computed(() => rows.value.map(task => ({
             <th scope="col" class="px-4 py-3">
               Category
             </th>
+            <th scope="col" class="px-4 py-3 text-right">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 text-sm">
@@ -180,6 +184,25 @@ const processedRows = computed(() => rows.value.map(task => ({
               <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
                 {{ row.task.category }}
               </span>
+            </td>
+
+            <td class="whitespace-nowrap px-4 py-4 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-pencil-square"
+                  @click="emit('editTask', row.task)"
+                />
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-trash"
+                  @click="emit('deleteTask', row.task)"
+                />
+              </div>
             </td>
           </tr>
         </tbody>

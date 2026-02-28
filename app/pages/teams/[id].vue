@@ -3,7 +3,7 @@ import { useRoute } from '#imports'
 import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
-import { getTasksByTeam } from '~/services/tasks'
+import { deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
 
 const BASE_URL = 'http://localhost:8003/api'
 
@@ -58,6 +58,25 @@ const addingTask = ref(false)
 const taskError = ref('')
 // eslint-disable-next-line no-undef
 const toast = useToast()
+
+// Edit task state
+const editTaskModalOpen = ref(false)
+const editingTask = ref(false)
+const editTaskError = ref('')
+const editingTaskId = ref(null)
+const editTaskState = reactive({
+  title: '',
+})
+
+const editTaskSchema = z.object({
+  title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title is required'),
+})
+
+// Delete task state
+const deleteTaskModalOpen = ref(false)
+const deletingTask = ref(false)
+const deletingTaskId = ref(null)
+const deletingTaskTitle = ref('')
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
@@ -131,6 +150,77 @@ async function handleAddTaskSubmit() {
     addingTask.value = false
   }
 }
+
+function openEditTaskModal(task) {
+  editingTaskId.value = task.id
+  editTaskState.title = task.title
+  editTaskError.value = ''
+  editTaskModalOpen.value = true
+}
+
+async function handleEditTaskSubmit() {
+  editingTask.value = true
+  editTaskError.value = ''
+
+  try {
+    await updateTask(getToken(), editingTaskId.value, editTaskState.title)
+
+    editTaskModalOpen.value = false
+
+    toast.add({
+      title: 'Task Updated',
+      description: 'The task has been updated successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+
+    await loadTasks()
+  }
+  catch (err) {
+    console.error('Updating task failed', err)
+    editTaskError.value = err?.message || 'Unable to update task. Please try again.'
+  }
+  finally {
+    editingTask.value = false
+  }
+}
+
+function openDeleteTaskModal(task) {
+  deletingTaskId.value = task.id
+  deletingTaskTitle.value = task.title
+  deleteTaskModalOpen.value = true
+}
+
+async function handleDeleteTask() {
+  deletingTask.value = true
+
+  try {
+    await deleteTask(getToken(), deletingTaskId.value)
+
+    deleteTaskModalOpen.value = false
+
+    toast.add({
+      title: 'Task Deleted',
+      description: 'The task has been deleted successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+
+    await loadTasks()
+  }
+  catch (err) {
+    console.error('Deleting task failed', err)
+    toast.add({
+      title: 'Delete Failed',
+      description: err?.message || 'Unable to delete task. Please try again.',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
+  finally {
+    deletingTask.value = false
+  }
+}
 </script>
 
 <template>
@@ -173,14 +263,14 @@ async function handleAddTaskSubmit() {
     </div>
 
     <div v-else>
-      <TaskTable :tasks="tasks" />
+      <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" />
     </div>
 
     <UModal
       v-if="addTaskModalOpen" v-model:open="addTaskModalOpen"
       class="max-w-[600px]"
       :ui="{ width: 'sm:max-w-md' }"
-      title="Add Task" description="Add a new task for today"
+      title="Add Task"
     >
       <template #body>
         <UForm
@@ -203,15 +293,28 @@ async function handleAddTaskSubmit() {
             />
           </UFormField>
 
-          <UButton
-            type="submit"
-            size="lg"
-            color="primary"
-            :loading="addingTask"
-            class="px-8"
-          >
-            Add Task
-          </UButton>
+          <div class="flex justify-end gap-3">
+            <UButton
+              type="button"
+              size="lg"
+              color="error"
+              variant="outline"
+              class="px-8"
+              :disabled="addingTask"
+              @click="addTaskModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              type="submit"
+              size="lg"
+              color="primary"
+              :loading="addingTask"
+              class="px-8"
+            >
+              Add Task
+            </UButton>
+          </div>
 
           <UAlert
             v-if="taskError"
@@ -221,6 +324,105 @@ async function handleAddTaskSubmit() {
             :title="taskError"
           />
         </UForm>
+      </template>
+    </UModal>
+
+    <!-- Edit Task Modal -->
+    <UModal
+      v-if="editTaskModalOpen" v-model:open="editTaskModalOpen"
+      class="max-w-[600px]"
+      :ui="{ width: 'sm:max-w-md' }"
+      title="Edit Task"
+    >
+      <template #body>
+        <UForm
+          :schema="editTaskSchema"
+          :state="editTaskState"
+          class="space-y-6"
+          :validate-on="['change', 'input']"
+          @submit="handleEditTaskSubmit"
+        >
+          <UFormField label="Task Title" name="title" :ui="{ label: 'text-text font-medium' }">
+            <UInput
+              v-model="editTaskState.title"
+              type="text"
+              placeholder="Update task title"
+              size="lg"
+              :disabled="editingTask"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+              autofocus
+            />
+          </UFormField>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              type="button"
+              size="lg"
+              color="error"
+              variant="outline"
+              class="px-8"
+              :disabled="editingTask"
+              @click="editTaskModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              type="submit"
+              size="lg"
+              color="primary"
+              :loading="editingTask"
+              class="px-8"
+            >
+              Update
+            </UButton>
+          </div>
+
+          <UAlert
+            v-if="editTaskError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="editTaskError"
+          />
+        </UForm>
+      </template>
+    </UModal>
+
+    <!-- Delete Task Confirmation Modal -->
+    <UModal
+      v-if="deleteTaskModalOpen" v-model:open="deleteTaskModalOpen"
+      :ui="{ width: 'sm:max-w-sm' }"
+      title="Delete Task"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">
+            Are you sure you want to delete <span class="font-medium text-gray-900">"{{ deletingTaskTitle }}"</span>?
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              size="lg"
+              color="neutral"
+              variant="outline"
+              class="px-8"
+              :disabled="deletingTask"
+              @click="deleteTaskModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              size="lg"
+              color="error"
+              class="px-8"
+              :loading="deletingTask"
+              @click="handleDeleteTask"
+            >
+              Delete
+            </UButton>
+          </div>
+        </div>
       </template>
     </UModal>
   </div>
