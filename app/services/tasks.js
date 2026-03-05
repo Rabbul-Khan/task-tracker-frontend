@@ -22,7 +22,7 @@ export async function getTasksByTeam(token, teamId) {
   return result
 }
 
-export async function updateTask(token, taskId, title) {
+export async function updateTask(token, taskId, data) {
   if (!token) {
     throw new Error('Missing authentication token. Please sign in again.')
   }
@@ -34,7 +34,7 @@ export async function updateTask(token, taskId, title) {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(data),
   })
 
   if (!response.ok) {
