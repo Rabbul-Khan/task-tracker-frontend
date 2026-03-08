@@ -4,18 +4,20 @@ import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
 import { createTask, deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
+import { getTeamMembers } from '~/services/teams'
+
+// eslint-disable-next-line no-undef
+definePageMeta({ layout: 'team' })
 
 const route = useRoute()
+// eslint-disable-next-line no-undef
+const activeSection = useState('teamActiveSection', () => 'todays-tasks')
 
 const loading = ref(false)
 const errorMessage = ref('')
 const tasks = ref([])
 
 const teamId = computed(() => Number(route.params.id))
-
-const teamName = computed(() => {
-  return Number.isNaN(teamId.value) ? 'Team' : `Team #${teamId.value}`
-})
 
 function getToken() {
   if (import.meta.client) {
@@ -47,8 +49,52 @@ async function loadTasks() {
   }
 }
 
+// Members
+const members = ref([])
+const membersLoading = ref(false)
+
+async function loadMembers() {
+  membersLoading.value = true
+  try {
+    const data = await getTeamMembers(getToken(), teamId.value)
+    members.value = data.data ?? []
+  }
+  catch (err) {
+    console.error('Failed to load members', err)
+  }
+  finally {
+    membersLoading.value = false
+  }
+}
+
+// Today's tasks
+const todaysTasks = ref([])
+const todaysTasksLoading = ref(false)
+
+async function loadTodaysTasks() {
+  const id = teamId.value
+  if (!Number.isFinite(id)) {
+    todaysTasks.value = []
+    return
+  }
+
+  todaysTasksLoading.value = true
+  try {
+    const data = await getTasksByTeam(getToken(), id, { status: 'in progress' })
+    todaysTasks.value = data.data ?? []
+  }
+  catch (err) {
+    console.error('Failed to load today\'s tasks', err)
+  }
+  finally {
+    todaysTasksLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadTasks()
+  loadTodaysTasks()
+  loadMembers()
 })
 
 const addTaskModalOpen = ref(false)
@@ -106,7 +152,7 @@ const categoryOptions = [
 
 const statusOptions = [
   { label: 'Pending', value: 'pending' },
-  { label: 'Ongoing', value: 'ongoing' },
+  { label: 'In progress', value: 'in progress' },
   { label: 'Completed', value: 'completed' },
 ]
 
@@ -282,14 +328,12 @@ async function handleDeleteTask() {
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
-      <div class="space-y-2">
+    <!-- Today's Tasks -->
+    <template v-if="activeSection === 'todays-tasks'">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
         <h1 class="text-3xl font-bold text-gray-900">
-          {{ teamName }}
+          Today's Tasks
         </h1>
-      </div>
-
-      <div class="flex items-center gap-4 self-start md:self-auto">
         <UButton
           color="primary"
           size="md"
@@ -301,27 +345,150 @@ async function handleDeleteTask() {
           Add Task
         </UButton>
       </div>
-    </div>
+      <hr class="border-gray-300 mb-6">
 
-    <hr class="border-gray-300 mb-6">
-
-    <UAlert
-      v-if="errorMessage"
-      color="error"
-      variant="soft"
-      icon="i-heroicons-exclamation-triangle"
-      :title="errorMessage"
-    />
-
-    <div v-if="loading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div class="space-y-4">
-        <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+      <div v-if="todaysTasksLoading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="space-y-4">
+          <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+        </div>
       </div>
-    </div>
+      <div v-else>
+        <TaskTable :tasks="todaysTasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" @update-task="handleInlineUpdateTask" />
+      </div>
+    </template>
 
-    <div v-else>
-      <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" @update-task="handleInlineUpdateTask" />
-    </div>
+    <!-- All Tasks -->
+    <template v-else-if="activeSection === 'all-tasks'">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          All Tasks
+        </h1>
+        <UButton
+          color="primary"
+          size="md"
+          icon="i-heroicons-plus"
+          class="px-5"
+          :disabled="addingTask"
+          @click="openAddTaskModal"
+        >
+          Add Task
+        </UButton>
+      </div>
+      <hr class="border-gray-300 mb-6">
+
+      <UAlert
+        v-if="errorMessage"
+        color="error"
+        variant="soft"
+        icon="i-heroicons-exclamation-triangle"
+        :title="errorMessage"
+      />
+
+      <div v-if="loading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="space-y-4">
+          <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+        </div>
+      </div>
+      <div v-else>
+        <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" @update-task="handleInlineUpdateTask" />
+      </div>
+    </template>
+
+    <!-- Members -->
+    <template v-else-if="activeSection === 'members'">
+      <div class="mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          Members
+        </h1>
+      </div>
+      <hr class="border-gray-300 mb-6">
+
+      <div v-if="membersLoading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="space-y-4">
+          <div v-for="index in 4" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+        </div>
+      </div>
+      <div v-else-if="members.length === 0" class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+        <p class="text-lg font-semibold text-gray-700">
+          No members found
+        </p>
+        <p class="text-sm text-gray-500">
+          Invite people to join this team.
+        </p>
+      </div>
+      <div v-else class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <th class="px-4 py-3">
+                Name
+              </th>
+              <th class="px-4 py-3">
+                Email
+              </th>
+              <th class="px-4 py-3">
+                Role
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 text-sm">
+            <tr v-for="member in members" :key="member.id" class="bg-white transition-colors hover:bg-gray-50">
+              <td class="px-4 py-4 font-medium text-gray-900">
+                {{ member.name }}
+              </td>
+              <td class="px-4 py-4 text-gray-600">
+                {{ member.email }}
+              </td>
+              <td class="px-4 py-4">
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize" :class="member.role === 'owner' ? 'bg-amber-100 text-amber-700' : member.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'">
+                  {{ member.role ?? 'member' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Invitations -->
+    <template v-else-if="activeSection === 'invitations'">
+      <div class="mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          Invitations
+        </h1>
+      </div>
+      <hr class="border-gray-300 mb-6">
+
+      <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+        <UIcon name="i-heroicons-envelope" class="w-10 h-10 text-gray-400" />
+        <p class="text-lg font-semibold text-gray-700">
+          Invitations coming soon
+        </p>
+        <p class="text-sm text-gray-500">
+          This section will let you manage team invitations.
+        </p>
+      </div>
+    </template>
+
+    <!-- Issue Tracker -->
+    <template v-else-if="activeSection === 'issue-tracker'">
+      <div class="mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          Issue Tracker
+        </h1>
+      </div>
+      <hr class="border-gray-300 mb-6">
+
+      <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+        <UIcon name="i-heroicons-bug-ant" class="w-10 h-10 text-gray-400" />
+        <p class="text-lg font-semibold text-gray-700">
+          Issue tracker coming soon
+        </p>
+        <p class="text-sm text-gray-500">
+          Track and manage issues for this team.
+        </p>
+      </div>
+    </template>
 
     <UModal
       v-if="addTaskModalOpen" v-model:open="addTaskModalOpen"
