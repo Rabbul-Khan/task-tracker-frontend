@@ -30,7 +30,7 @@ const statusOptions = [
 ]
 
 function onFieldChange(task, field, value) {
-  emit('updateTask', { ...task, [field]: value })
+  emit('updateTask', { id: task.id, field, value })
 }
 
 const rows = computed(() => props.tasks ?? [])
