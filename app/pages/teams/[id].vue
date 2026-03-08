@@ -3,9 +3,7 @@ import { useRoute } from '#imports'
 import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
-import { deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
-
-const BASE_URL = 'http://localhost:8003/api'
+import { createTask, deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
 
 const route = useRoute()
 
@@ -66,10 +64,18 @@ const editTaskError = ref('')
 const editingTaskId = ref(null)
 const editTaskState = reactive({
   title: '',
+  description: '',
+  priority: '',
+  category: '',
+  status: '',
 })
 
 const editTaskSchema = z.object({
   title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title is required'),
+  description: z.string().optional(),
+  priority: z.string().optional(),
+  category: z.string({ required_error: 'Category is required' }).min(1, 'Category is required'),
+  status: z.string().optional(),
 })
 
 // Delete task state
@@ -80,10 +86,37 @@ const deletingTaskTitle = ref('')
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
+  description: z.string().optional(),
+  priority: z.string().optional(),
+  category: z.string({ required_error: 'Category is required' }).min(1, 'Category is required'),
+  status: z.string().optional(),
 })
+
+const priorityOptions = [
+  { label: 'High', value: 'high' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'Low', value: 'low' },
+]
+
+const categoryOptions = [
+  { label: 'Feature', value: 'feature' },
+  { label: 'Bug Fix', value: 'bug_fix' },
+  { label: 'Enhancement', value: 'enhancement' },
+]
+
+const statusOptions = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Ongoing', value: 'ongoing' },
+  { label: 'Completed', value: 'completed' },
+]
 
 const taskState = reactive({
   task: '',
+  description: '',
+  priority: '',
+  category: '',
+  status: '',
+  assigned_to: 'self',
 })
 
 function openAddTaskModal() {
@@ -102,27 +135,22 @@ async function handleAddTaskSubmit() {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/tasks`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: JSON.stringify({
-        team_id: teamId.value,
-        title: taskState.task,
-        category: 'Feature',
-      }),
-      redirect: 'manual',
+    await createTask(token, teamId.value, {
+      team_id: teamId.value,
+      title: taskState.task,
+      description: taskState.description || undefined,
+      priority: taskState.priority || undefined,
+      category: taskState.category,
+      status: taskState.status || undefined,
+      assigned_to: taskState.assigned_to,
     })
 
-    if (!response.ok) {
-      throw new Error('Failed to add task')
-    }
-
     taskState.task = ''
+    taskState.description = ''
+    taskState.priority = ''
+    taskState.category = ''
+    taskState.status = ''
+    taskState.assigned_to = 'self'
     addTaskModalOpen.value = false
 
     toast.add({
@@ -154,6 +182,10 @@ async function handleAddTaskSubmit() {
 function openEditTaskModal(task) {
   editingTaskId.value = task.id
   editTaskState.title = task.title
+  editTaskState.description = task.description ?? ''
+  editTaskState.priority = task.priority ?? ''
+  editTaskState.category = task.category ?? ''
+  editTaskState.status = task.status ?? ''
   editTaskError.value = ''
   editTaskModalOpen.value = true
 }
@@ -163,7 +195,13 @@ async function handleEditTaskSubmit() {
   editTaskError.value = ''
 
   try {
-    await updateTask(getToken(), editingTaskId.value, editTaskState.title)
+    await updateTask(getToken(), editingTaskId.value, {
+      title: editTaskState.title,
+      description: editTaskState.description || undefined,
+      priority: editTaskState.priority || undefined,
+      category: editTaskState.category,
+      status: editTaskState.status || undefined,
+    }, teamId.value)
 
     editTaskModalOpen.value = false
 
@@ -191,11 +229,30 @@ function openDeleteTaskModal(task) {
   deleteTaskModalOpen.value = true
 }
 
+async function handleInlineUpdateTask({ id, field, value }) {
+  try {
+    await updateTask(getToken(), id, {
+      [field]: value,
+    }, teamId.value)
+
+    await loadTasks()
+  }
+  catch (err) {
+    console.error('Inline update failed', err)
+    toast.add({
+      title: 'Update Failed',
+      description: err?.message || 'Unable to update task. Please try again.',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
+}
+
 async function handleDeleteTask() {
   deletingTask.value = true
 
   try {
-    await deleteTask(getToken(), deletingTaskId.value)
+    await deleteTask(getToken(), deletingTaskId.value, teamId.value)
 
     deleteTaskModalOpen.value = false
 
@@ -263,7 +320,7 @@ async function handleDeleteTask() {
     </div>
 
     <div v-else>
-      <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" />
+      <TaskTable :tasks="tasks" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" @update-task="handleInlineUpdateTask" />
     </div>
 
     <UModal
@@ -292,6 +349,52 @@ async function handleDeleteTask() {
               autofocus
             />
           </UFormField>
+
+          <UFormField label="Description" name="description" :ui="{ label: 'text-text font-medium' }">
+            <UTextarea
+              v-model="taskState.description"
+              placeholder="Add a description..."
+              size="lg"
+              :disabled="addingTask"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+            />
+          </UFormField>
+
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Priority" name="priority" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="taskState.priority"
+                :items="priorityOptions"
+                placeholder="Select priority"
+                size="lg"
+                :disabled="addingTask"
+                class="w-full"
+              />
+            </UFormField>
+
+            <UFormField label="Category" name="category" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="taskState.category"
+                :items="categoryOptions"
+                placeholder="Select category"
+                size="lg"
+                :disabled="addingTask"
+                class="w-full"
+              />
+            </UFormField>
+
+            <UFormField label="Status" name="status" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="taskState.status"
+                :items="statusOptions"
+                placeholder="Select status"
+                size="lg"
+                :disabled="addingTask"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
 
           <div class="flex justify-end gap-3">
             <UButton
@@ -342,11 +445,11 @@ async function handleDeleteTask() {
           :validate-on="['change', 'input']"
           @submit="handleEditTaskSubmit"
         >
-          <UFormField label="Task Title" name="title" :ui="{ label: 'text-text font-medium' }">
+          <UFormField label="Task" name="title" :ui="{ label: 'text-text font-medium' }">
             <UInput
               v-model="editTaskState.title"
               type="text"
-              placeholder="Update task title"
+              placeholder="What needs to be done today?"
               size="lg"
               :disabled="editingTask"
               class="w-full"
@@ -354,6 +457,52 @@ async function handleDeleteTask() {
               autofocus
             />
           </UFormField>
+
+          <UFormField label="Description" name="description" :ui="{ label: 'text-text font-medium' }">
+            <UTextarea
+              v-model="editTaskState.description"
+              placeholder="Add a description..."
+              size="lg"
+              :disabled="editingTask"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+            />
+          </UFormField>
+
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Priority" name="priority" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="editTaskState.priority"
+                :items="priorityOptions"
+                placeholder="Select priority"
+                size="lg"
+                :disabled="editingTask"
+                class="w-full"
+              />
+            </UFormField>
+
+            <UFormField label="Category" name="category" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="editTaskState.category"
+                :items="categoryOptions"
+                placeholder="Select category"
+                size="lg"
+                :disabled="editingTask"
+                class="w-full"
+              />
+            </UFormField>
+
+            <UFormField label="Status" name="status" :ui="{ label: 'text-text font-medium' }">
+              <USelect
+                v-model="editTaskState.status"
+                :items="statusOptions"
+                placeholder="Select status"
+                size="lg"
+                :disabled="editingTask"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
 
           <div class="flex justify-end gap-3">
             <UButton

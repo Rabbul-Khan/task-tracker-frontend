@@ -9,7 +9,29 @@ const props = defineProps({
 })
 
 // const emit = defineEmits(['create-task'])
-const emit = defineEmits(['editTask', 'deleteTask'])
+const emit = defineEmits(['editTask', 'deleteTask', 'updateTask'])
+
+const priorityOptions = [
+  { label: 'High', value: 'high' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'Low', value: 'low' },
+]
+
+const categoryOptions = [
+  { label: 'Feature', value: 'feature' },
+  { label: 'Bug Fix', value: 'bug_fix' },
+  { label: 'Enhancement', value: 'enhancement' },
+]
+
+const statusOptions = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Ongoing', value: 'ongoing' },
+  { label: 'Completed', value: 'completed' },
+]
+
+function onFieldChange(task, field, value) {
+  emit('updateTask', { id: task.id, field, value })
+}
 
 const rows = computed(() => props.tasks ?? [])
 const hasTasks = computed(() => rows.value.length > 0)
@@ -158,7 +180,16 @@ const processedRows = computed(() => rows.value.map(task => ({
               Title
             </th>
             <th scope="col" class="px-4 py-3">
+              Assigned To
+            </th>
+            <th scope="col" class="px-4 py-3">
               Category
+            </th>
+            <th scope="col" class="px-4 py-3">
+              Priority
+            </th>
+            <th scope="col" class="px-4 py-3">
+              Status
             </th>
             <th scope="col" class="px-4 py-3 text-right">
               Actions
@@ -181,9 +212,58 @@ const processedRows = computed(() => rows.value.map(task => ({
             </td>
 
             <td class="whitespace-nowrap px-4 py-4">
-              <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                {{ row.task.category }}
+              <span class="text-sm text-gray-700">
+                {{ row.task.assigned_to ?? '—' }}
               </span>
+            </td>
+
+            <td class="whitespace-nowrap px-4 py-4">
+              <USelect
+                :model-value="row.task.category"
+                :items="categoryOptions"
+                :ui="{
+                  base: 'w-full justify-between bg-transparent hover:bg-gray-100 focus:bg-transparent focus-visible:bg-transparent data-[state=open]:bg-gray-100 rounded',
+                  trailingIcon: 'opacity-0 group-hover:opacity-100 transition-opacity',
+                }"
+                placeholder="Select"
+                size="xs"
+                class="w-32 cursor-pointer"
+                color="neutral" variant="ghost"
+                @update:model-value="onFieldChange(row.task, 'category', $event)"
+              />
+            </td>
+
+            <td class="whitespace-nowrap px-4 py-4">
+              <USelect
+                :model-value="row.task.priority"
+                :items="priorityOptions"
+                placeholder="Select"
+
+                size="xs"
+                class="w-32 cursor-pointer"
+                :ui="{
+                  base: 'w-full justify-between bg-transparent hover:bg-gray-100 focus:bg-transparent focus-visible:bg-transparent data-[state=open]:bg-gray-100 rounded',
+                  trailingIcon: 'opacity-0 group-hover:opacity-100 transition-opacity',
+                }"
+                color="neutral" variant="ghost"
+                @update:model-value="onFieldChange(row.task, 'priority', $event)"
+              />
+            </td>
+
+            <td class="whitespace-nowrap px-4 py-4">
+              <USelect
+                :model-value="row.task.status"
+                :items="statusOptions"
+                :ui="{
+                  base: 'w-full justify-between bg-transparent hover:bg-gray-100 focus:bg-transparent focus-visible:bg-transparent data-[state=open]:bg-gray-100 rounded',
+                  trailingIcon: 'opacity-0 group-hover:opacity-100 transition-opacity',
+                }"
+                placeholder="Select"
+                size="xs"
+                class="w-32 cursor-pointer"
+                color="neutral" variant="ghost"
+                @update:model-value="onFieldChange(row.task, 'status', $event)"
+              />
             </td>
 
             <td class="whitespace-nowrap px-4 py-4 text-right">
