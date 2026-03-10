@@ -130,6 +130,12 @@ export const useTeamStore = defineStore('team', () => {
   // --- Section loading ---
 
   function loadSectionData(section) {
+    // Issue tracker always re-fetches (tasks can change category at any time)
+    if (section === 'issue-tracker') {
+      loadIssues()
+      return
+    }
+
     if (loadedSections.value.has(section))
       return
     loadedSections.value.add(section)
@@ -143,9 +149,6 @@ export const useTeamStore = defineStore('team', () => {
         break
       case 'members':
         loadMembers()
-        break
-      case 'issue-tracker':
-        loadIssues()
         break
       case 'settings':
         loadTeamInfo()
@@ -180,7 +183,12 @@ export const useTeamStore = defineStore('team', () => {
 
   async function editTask(taskId, taskData) {
     await updateTask(getToken(), taskId, taskData, teamId.value)
-    reloadCurrentTaskSection()
+    if (activeSection.value === 'issue-tracker') {
+      loadIssues()
+    }
+    else {
+      reloadCurrentTaskSection()
+    }
   }
 
   async function removeTask(taskId) {
