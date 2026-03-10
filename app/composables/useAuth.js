@@ -1,85 +1,17 @@
-import { loginUser } from '~/services/login'
-import { registerUser } from '~/services/register'
+import { useAuthStore } from '~/stores/auth'
 
 export function useAuth() {
-  const loading = ref(false)
-  const error = ref('')
-  const success = ref(null)
-  const user = ref(null)
+  const store = useAuthStore()
 
-  // Use useState for SSR-safe reactive state
-  // eslint-disable-next-line no-undef
-  const token = useState('auth-token', () => {
-    // Only access localStorage on client-side
-    if (import.meta.client) {
-      return localStorage.getItem('token')
-    }
-    return null
-  })
-
-  async function login(email, password) {
-    try {
-      loading.value = true
-      error.value = ''
-      const data = await loginUser(email, password)
-
-      // Update reactive state
-      token.value = data.token
-
-      // Persist to localStorage (client-side only)
-      if (import.meta.client) {
-        localStorage.setItem('token', data.token)
-      }
-    }
-    catch (err) {
-      if (err) {
-        error.value = 'Invalid email or password'
-      }
-    }
-    finally {
-      loading.value = false
-    }
+  return {
+    loading: computed(() => store.loading),
+    error: computed(() => store.error),
+    success: computed(() => store.success),
+    token: computed(() => store.token),
+    user: computed(() => store.user),
+    login: store.login,
+    register: store.register,
+    logout: store.logout,
+    fetchProfile: store.fetchProfile,
   }
-
-  async function register(name, email, password) {
-    loading.value = true
-    error.value = ''
-    success.value = null
-    try {
-      const data = await registerUser(name, email, password)
-
-      // Update reactive state
-      user.value = data.user
-      // token.value = data.token
-      success.value = data.message
-
-      // fade-out after 2 seconds
-      setTimeout(() => {
-        success.value = null
-      }, 2000)
-
-      // Persist to localStorage (client-side only)
-      // if (import.meta.client) {
-      //   localStorage.setItem('token', data.token)
-      // }
-    }
-    catch (err) {
-      error.value = err.message || 'Registration failed'
-    }
-
-    finally {
-      loading.value = false
-    }
-  }
-
-  function logout() {
-    token.value = null
-    if (import.meta.client) {
-      localStorage.removeItem('token')
-    }
-    // eslint-disable-next-line no-undef
-    navigateTo('/login')
-  }
-
-  return { loading, error, login, register, logout, token, success }
 }

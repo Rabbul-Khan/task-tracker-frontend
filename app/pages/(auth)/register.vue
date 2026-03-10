@@ -1,6 +1,6 @@
 <script setup>
-import { useAuth } from '#imports'
 import { z } from 'zod'
+import { useAuthStore } from '~/stores/auth'
 
 // eslint-disable-next-line no-undef
 const colorMode = useColorMode()
@@ -29,7 +29,11 @@ const state = reactive({
   confirmPassword: '',
 })
 
-const { register, error, loading, success } = useAuth()
+const authStore = useAuthStore()
+const { register } = authStore
+const error = computed(() => authStore.error)
+const loading = computed(() => authStore.loading)
+const success = computed(() => authStore.success)
 
 async function handleRegister(event) {
   await register(event.data.name, event.data.email, event.data.password, event.data.confirmPassword)
