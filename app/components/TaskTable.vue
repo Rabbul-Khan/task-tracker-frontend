@@ -25,7 +25,7 @@ const categoryOptions = [
 
 const statusOptions = [
   { label: 'Pending', value: 'pending' },
-  { label: 'Ongoing', value: 'ongoing' },
+  { label: 'In progress', value: 'in progress' },
   { label: 'Completed', value: 'completed' },
 ]
 

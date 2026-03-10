@@ -1,11 +1,20 @@
 const BASE_URL = 'http://localhost:8003/api'
 
-export async function getTasksByTeam(token, teamId) {
+export async function getTasksByTeam(token, teamId, filters = {}) {
   if (!token) {
     throw new Error('Missing authentication token. Please sign in again.')
   }
 
-  const response = await fetch(`${BASE_URL}/teams/${teamId}/tasks`, {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, value)
+    }
+  }
+  const query = params.toString()
+  const url = `${BASE_URL}/teams/${teamId}/tasks${query ? `?${query}` : ''}`
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
