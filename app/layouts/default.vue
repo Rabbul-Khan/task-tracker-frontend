@@ -1,8 +1,14 @@
 <script setup>
-import { useAuth } from '~/composables/useAuth'
+import { useAuthStore } from '~/stores/auth'
 
-// const user = useState('user', () => null)
-const { logout } = useAuth()
+const authStore = useAuthStore()
+
+// Fetch profile if we have a token but no user data yet
+onMounted(async () => {
+  if (authStore.token && !authStore.user) {
+    await authStore.fetchProfile()
+  }
+})
 </script>
 
 <template>
@@ -32,20 +38,20 @@ const { logout } = useAuth()
         </button>
 
         <!-- User Info -->
-        <div class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors">
-          <span class="text-sm font-medium text-gray-700">{{ user?.name || 'User' }}</span>
+        <NuxtLink to="/profile" class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors no-underline">
+          <span class="text-sm font-medium text-gray-700">{{ authStore.user?.name || 'User' }}</span>
           <img
-            :src="user?.avatar || 'https://i.pravatar.cc/100?img=10'"
+            :src="authStore.user?.avatar || 'https://i.pravatar.cc/100?img=10'"
             alt="User avatar"
             class="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
           >
-        </div>
+        </NuxtLink>
 
         <!-- Logout Button -->
         <button
           class="p-2 rounded-lg hover:bg-red-50 transition-colors group"
           title="Logout"
-          @click="logout"
+          @click="authStore.logout"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="text-gray-600 group-hover:text-red-500 transition-colors"><path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h7v2zm11-4l-1.375-1.45l2.55-2.55H9v-2h8.175l-2.55-2.55L16 7l5 5z" /></svg>
         </button>

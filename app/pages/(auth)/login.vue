@@ -1,6 +1,6 @@
 <script setup>
-import { useAuth } from '#imports'
 import { z } from 'zod'
+import { useAuthStore } from '~/stores/auth'
 
 // eslint-disable-next-line no-undef
 definePageMeta({
@@ -21,11 +21,14 @@ const state = reactive({
   password: '',
 })
 
-const { login, error, loading, token } = useAuth()
+const authStore = useAuthStore()
+const { login } = authStore
+const error = computed(() => authStore.error)
+const loading = computed(() => authStore.loading)
 
 async function handleLogin(event) {
   await login(event.data.email, event.data.password)
-  if (token.value) {
+  if (authStore.token) {
     // eslint-disable-next-line no-undef
     navigateTo('/teams')
   }

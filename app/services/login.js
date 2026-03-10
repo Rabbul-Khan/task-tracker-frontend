@@ -29,3 +29,17 @@ export async function loginUser(email, password) {
     user: result.data,
   }
 }
+
+export async function logoutUser(token) {
+  const response = await fetch(`${BASE_URL}/logout`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+}
