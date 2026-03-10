@@ -80,14 +80,15 @@ async function saveProfile() {
 
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-gray-900 mb-8">
+    <h1 class="text-3xl font-bold mb-4">
       My Profile
     </h1>
+    <hr class="border-gray-300 mb-6">
 
     <!-- Profile Card -->
-    <div class="bg-white rounded-xl border border-gray-200 p-8">
+    <div class="bg-white rounded-xl border border-gray-200 p-8 mb-4">
       <!-- Avatar + Name header -->
-      <div class="flex items-center gap-5 mb-8 pb-6 border-b border-gray-100">
+      <div class="flex items-center gap-5 border-gray-100">
         <img
           :src="authStore.user?.avatar || 'https://i.pravatar.cc/100?img=10'"
           alt="User avatar"
@@ -102,7 +103,42 @@ async function saveProfile() {
           </p>
         </div>
       </div>
+    </div>
 
+    <div class="bg-white rounded-xl border border-gray-200 p-8">
+      <div class="flex justify-between">
+        <h2 class="text-xl font-bold mb-4">
+          Personal Information
+        </h2>
+        <div class=" flex gap-3">
+          <template v-if="editing">
+            <UButton
+              color="primary"
+              :loading="saving"
+              size="sm"
+              @click="saveProfile"
+            >
+              Save Changes
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              :disabled="saving"
+              size="sm" @click="cancelEditing"
+            >
+              Cancel
+            </UButton>
+          </template>
+          <UButton
+            v-else
+            color="primary"
+            variant="outline"
+            size="sm" @click="startEditing"
+          >
+            Edit Profile
+          </UButton>
+        </div>
+      </div>
       <!-- Success Alert -->
       <UAlert
         v-if="saveSuccess"
@@ -110,7 +146,7 @@ async function saveProfile() {
         variant="soft"
         :title="saveSuccess"
         icon="i-heroicons-check-circle"
-        class="mb-6"
+        class="mb-6 mt-2"
       />
 
       <!-- Error Alert -->
@@ -126,12 +162,12 @@ async function saveProfile() {
       <!-- Profile Fields -->
       <div class="space-y-5">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <label class="block text-sm font-medium text-gray-500">Full Name</label>
           <UInput
             v-if="editing"
             v-model="form.name"
             size="lg"
-            class="w-full"
+            class="w-full text-sm"
           />
           <p v-else class="text-gray-900 py-2">
             {{ authStore.user?.name || '-' }}
@@ -139,13 +175,13 @@ async function saveProfile() {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label class="block text-sm font-medium text-gray-500">Email address</label>
           <UInput
             v-if="editing"
             v-model="form.email"
             type="email"
             size="lg"
-            class="w-full"
+            class="w-full text-sm"
           />
           <p v-else class="text-gray-900 py-2">
             {{ authStore.user?.email || '-' }}
@@ -154,33 +190,6 @@ async function saveProfile() {
       </div>
 
       <!-- Actions -->
-      <div class="mt-8 flex gap-3">
-        <template v-if="editing">
-          <UButton
-            color="primary"
-            :loading="saving"
-            @click="saveProfile"
-          >
-            Save Changes
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="outline"
-            :disabled="saving"
-            @click="cancelEditing"
-          >
-            Cancel
-          </UButton>
-        </template>
-        <UButton
-          v-else
-          color="primary"
-          variant="outline"
-          @click="startEditing"
-        >
-          Edit Profile
-        </UButton>
-      </div>
     </div>
   </div>
 </template>
