@@ -1,109 +1,47 @@
 <script setup>
 import { useRoute } from '#imports'
-import { computed, reactive, ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { computed, reactive, ref, watch } from 'vue'
 import { z } from 'zod'
 import TaskTable from '~/components/TaskTable.vue'
-import { createTask, deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
-import { getTeamMembers } from '~/services/teams'
+import { useTeamStore } from '~/stores/team'
 
 // eslint-disable-next-line no-undef
 definePageMeta({ layout: 'team' })
 
 const route = useRoute()
+const teamStore = useTeamStore()
 // eslint-disable-next-line no-undef
-const activeSection = useState('teamActiveSection', () => 'todays-tasks')
-
-const loading = ref(false)
-const errorMessage = ref('')
-const tasks = ref([])
+const toast = useToast()
 
 const teamId = computed(() => Number(route.params.id))
 
-function getToken() {
-  if (import.meta.client) {
-    return localStorage.getItem('token')
-  }
-  return null
-}
-
-async function loadTasks() {
-  const id = teamId.value
-  if (!Number.isFinite(id)) {
-    tasks.value = []
-    return
-  }
-
-  loading.value = true
-  errorMessage.value = ''
-
-  try {
-    const data = await getTasksByTeam(getToken(), id)
-    tasks.value = data.data ?? []
-  }
-  catch (err) {
-    console.error('Failed to load tasks', err)
-    errorMessage.value = err?.message || 'Unable to load tasks right now. Please try again shortly.'
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-// Members
-const members = ref([])
-const membersLoading = ref(false)
-
-async function loadMembers() {
-  membersLoading.value = true
-  try {
-    const data = await getTeamMembers(getToken(), teamId.value)
-    members.value = data.data ?? []
-  }
-  catch (err) {
-    console.error('Failed to load members', err)
-  }
-  finally {
-    membersLoading.value = false
-  }
-}
-
-// Today's tasks
-const todaysTasks = ref([])
-const todaysTasksLoading = ref(false)
-
-async function loadTodaysTasks() {
-  const id = teamId.value
-  if (!Number.isFinite(id)) {
-    todaysTasks.value = []
-    return
-  }
-
-  todaysTasksLoading.value = true
-  try {
-    const data = await getTasksByTeam(getToken(), id, { status: 'in progress' })
-    todaysTasks.value = data.data ?? []
-  }
-  catch (err) {
-    console.error('Failed to load today\'s tasks', err)
-  }
-  finally {
-    todaysTasksLoading.value = false
-  }
-}
-
-onMounted(() => {
-  loadTasks()
-  loadTodaysTasks()
-  loadMembers()
+// Store state bindings
+const { tasks, todaysTasks, members, tasksLoading, todaysTasksLoading, membersLoading, tasksError, updatingTeam, updateTeamError, deletingTeam } = storeToRefs(teamStore)
+const activeSection = computed({
+  get: () => teamStore.activeSection,
+  set: val => teamStore.activeSection = val,
 })
+const teamName = computed({
+  get: () => teamStore.teamName,
+  set: val => teamStore.teamName = val,
+})
+
+// Initialize store when the page mounts
+onMounted(() => {
+  teamStore.init(teamId.value)
+})
+
+watch(activeSection, (section) => {
+  teamStore.loadSectionData(section)
+})
+
+// --- Modal / UI state (page-local, not in store) ---
 
 const addTaskModalOpen = ref(false)
 const addingTask = ref(false)
 const taskError = ref('')
-// eslint-disable-next-line no-undef
-const toast = useToast()
 
-// Edit task state
 const editTaskModalOpen = ref(false)
 const editingTask = ref(false)
 const editTaskError = ref('')
@@ -116,6 +54,12 @@ const editTaskState = reactive({
   status: '',
 })
 
+const deleteTaskModalOpen = ref(false)
+const deletingTask = ref(false)
+const deletingTaskId = ref(null)
+const deletingTaskTitle = ref('')
+const deleteTeamModalOpen = ref(false)
+
 const editTaskSchema = z.object({
   title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title is required'),
   description: z.string().optional(),
@@ -123,12 +67,6 @@ const editTaskSchema = z.object({
   category: z.string({ required_error: 'Category is required' }).min(1, 'Category is required'),
   status: z.string().optional(),
 })
-
-// Delete task state
-const deleteTaskModalOpen = ref(false)
-const deletingTask = ref(false)
-const deletingTaskId = ref(null)
-const deletingTaskTitle = ref('')
 
 const addTaskSchema = z.object({
   task: z.string({ required_error: 'Task is required' }).min(1, 'Task is required'),
@@ -173,16 +111,8 @@ async function handleAddTaskSubmit() {
   addingTask.value = true
   taskError.value = ''
 
-  const token = localStorage.getItem('token')
-  if (!token) {
-    taskError.value = 'Missing authentication token. Please sign in again.'
-    addingTask.value = false
-    return
-  }
-
   try {
-    await createTask(token, teamId.value, {
-      team_id: teamId.value,
+    await teamStore.addTask({
       title: taskState.task,
       description: taskState.description || undefined,
       priority: taskState.priority || undefined,
@@ -205,20 +135,10 @@ async function handleAddTaskSubmit() {
       color: 'success',
       icon: 'i-heroicons-check-circle',
     })
-
-    // Reload tasks after adding
-    await loadTasks()
   }
   catch (error) {
     console.error('Adding task failed', error)
-    const redirectMessage = error?.response?.status === 302
-      ? 'Add task request was redirected. Verify API base URL and CORS settings.'
-      : null
-    const serverMessage = redirectMessage
-      || error?.data?.message
-      || error?.message
-      || 'Unable to add task. Please try again.'
-    taskError.value = serverMessage
+    taskError.value = error?.data?.message || error?.message || 'Unable to add task. Please try again.'
   }
   finally {
     addingTask.value = false
@@ -241,13 +161,13 @@ async function handleEditTaskSubmit() {
   editTaskError.value = ''
 
   try {
-    await updateTask(getToken(), editingTaskId.value, {
+    await teamStore.editTask(editingTaskId.value, {
       title: editTaskState.title,
       description: editTaskState.description || undefined,
       priority: editTaskState.priority || undefined,
       category: editTaskState.category,
       status: editTaskState.status || undefined,
-    }, teamId.value)
+    })
 
     editTaskModalOpen.value = false
 
@@ -257,8 +177,6 @@ async function handleEditTaskSubmit() {
       color: 'success',
       icon: 'i-heroicons-check-circle',
     })
-
-    await loadTasks()
   }
   catch (err) {
     console.error('Updating task failed', err)
@@ -277,11 +195,7 @@ function openDeleteTaskModal(task) {
 
 async function handleInlineUpdateTask({ id, field, value }) {
   try {
-    await updateTask(getToken(), id, {
-      [field]: value,
-    }, teamId.value)
-
-    await loadTasks()
+    await teamStore.editTask(id, { [field]: value })
   }
   catch (err) {
     console.error('Inline update failed', err)
@@ -298,8 +212,7 @@ async function handleDeleteTask() {
   deletingTask.value = true
 
   try {
-    await deleteTask(getToken(), deletingTaskId.value, teamId.value)
-
+    await teamStore.removeTask(deletingTaskId.value)
     deleteTaskModalOpen.value = false
 
     toast.add({
@@ -308,8 +221,6 @@ async function handleDeleteTask() {
       color: 'success',
       icon: 'i-heroicons-check-circle',
     })
-
-    await loadTasks()
   }
   catch (err) {
     console.error('Deleting task failed', err)
@@ -322,6 +233,52 @@ async function handleDeleteTask() {
   }
   finally {
     deletingTask.value = false
+  }
+}
+
+async function handleUpdateTeam() {
+  if (!teamName.value.trim()) {
+    teamStore.updateTeamError = 'Team name is required.'
+    return
+  }
+
+  try {
+    await teamStore.updateTeamName(teamName.value.trim())
+
+    toast.add({
+      title: 'Team Updated',
+      description: 'The team name has been updated successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+  }
+  catch {
+    // Error already set in store
+  }
+}
+
+async function handleDeleteTeam() {
+  try {
+    await teamStore.removeTeam()
+
+    toast.add({
+      title: 'Team Deleted',
+      description: 'The team has been deleted successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+
+    // eslint-disable-next-line no-undef
+    navigateTo('/teams')
+  }
+  catch (err) {
+    console.error('Failed to delete team', err)
+    toast.add({
+      title: 'Delete Failed',
+      description: err?.message || 'Unable to delete team. Please try again.',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
   }
 }
 </script>
@@ -377,14 +334,14 @@ async function handleDeleteTask() {
       <hr class="border-gray-300 mb-6">
 
       <UAlert
-        v-if="errorMessage"
+        v-if="tasksError"
         color="error"
         variant="soft"
         icon="i-heroicons-exclamation-triangle"
-        :title="errorMessage"
+        :title="tasksError"
       />
 
-      <div v-if="loading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div v-if="tasksLoading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div class="space-y-4">
           <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
         </div>
@@ -487,6 +444,78 @@ async function handleDeleteTask() {
         <p class="text-sm text-gray-500">
           Track and manage issues for this team.
         </p>
+      </div>
+    </template>
+
+    <!-- Settings -->
+    <template v-else-if="activeSection === 'settings'">
+      <div class="mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          Settings
+        </h1>
+      </div>
+      <hr class="border-gray-300 mb-6">
+
+      <div class="space-y-8">
+        <!-- Update Team Name -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 class="text-lg font-semibold text-gray-900 mb-1">
+            Team Name
+          </h2>
+          <p class="text-sm text-gray-500 mb-4">
+            Update the name of your team.
+          </p>
+
+          <div class="flex items-end gap-3">
+            <div class="flex-1">
+              <UInput
+                v-model="teamName"
+                type="text"
+                placeholder="Enter team name"
+                size="lg"
+                :disabled="updatingTeam"
+                class="w-full max-w-md"
+              />
+            </div>
+            <UButton
+              color="primary"
+              size="lg"
+              :loading="updatingTeam"
+              class="px-6"
+              @click="handleUpdateTeam"
+            >
+              Save
+            </UButton>
+          </div>
+
+          <UAlert
+            v-if="updateTeamError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="updateTeamError"
+            class="mt-4"
+          />
+        </div>
+
+        <!-- Delete Team -->
+        <div class="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+          <h2 class="text-lg font-semibold text-red-600 mb-1">
+            Delete Team
+          </h2>
+          <p class="text-sm text-gray-500 mb-4">
+            Permanently delete this team and all of its data. This action cannot be undone.
+          </p>
+          <UButton
+            color="error"
+            variant="soft"
+            size="md"
+            icon="i-heroicons-trash"
+            @click="deleteTeamModalOpen = true"
+          >
+            Delete Team
+          </UButton>
+        </div>
       </div>
     </template>
 
@@ -736,6 +765,46 @@ async function handleDeleteTask() {
               @click="handleDeleteTask"
             >
               Delete
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Delete Team Confirmation Modal -->
+    <UModal
+      v-if="deleteTeamModalOpen" v-model:open="deleteTeamModalOpen"
+      :ui="{ width: 'sm:max-w-sm' }"
+      title="Delete Team"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">
+            Are you sure you want to delete this team? All tasks, members, and data associated with this team will be permanently removed.
+          </p>
+          <p class="text-sm font-medium text-red-600">
+            This action cannot be undone.
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              size="lg"
+              color="neutral"
+              variant="outline"
+              class="px-8"
+              :disabled="deletingTeam"
+              @click="deleteTeamModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              size="lg"
+              color="error"
+              class="px-8"
+              :loading="deletingTeam"
+              @click="handleDeleteTeam"
+            >
+              Delete Team
             </UButton>
           </div>
         </div>

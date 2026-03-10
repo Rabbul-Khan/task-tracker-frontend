@@ -1,7 +1,10 @@
 import { getTasksByTeam } from '~/services/tasks'
 import { createNewTeam, getAllTeams } from '~/services/teams'
+import { useAuthStore } from '~/stores/auth'
 
 export function useTeams() {
+  const authStore = useAuthStore()
+
   const loading = ref(false)
   const error = ref('')
   const teams = ref([])
@@ -11,22 +14,8 @@ export function useTeams() {
     teamName: undefined,
   })
 
-  // Use useState for SSR-safe reactive state (shared with useAuth)
-  // eslint-disable-next-line no-undef
-  const token = useState('auth-token', () => {
-    // Only access localStorage on client-side
-    if (import.meta.client) {
-      return localStorage.getItem('token')
-    }
-    return null
-  })
-
-  // Ensure token is synced from localStorage on client-side
   function getToken() {
-    if (import.meta.client && !token.value) {
-      token.value = localStorage.getItem('token')
-    }
-    return token.value
+    return authStore.token
   }
 
   function openModal() {
