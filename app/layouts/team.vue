@@ -1,37 +1,25 @@
 <script setup>
-import { useRoute, useState } from '#imports'
-import { computed, ref } from 'vue'
-import { getTeam } from '~/services/teams'
+// import { useRoute } from '#imports'
+import { computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useTeamStore } from '~/stores/team'
 
 const authStore = useAuthStore()
-const route = useRoute()
+const teamStore = useTeamStore()
+// const route = useRoute()
 
-const teamId = computed(() => Number(route.params.id))
-const teamName = ref('')
-
-function getToken() {
-  return authStore.token
-}
-
-async function loadTeamInfo() {
-  try {
-    const data = await getTeam(getToken(), teamId.value)
-    teamName.value = data.data?.name ?? data.name ?? `Team #${teamId.value}`
-  }
-  catch {
-    teamName.value = `Team #${teamId.value}`
-  }
-}
+// const teamId = computed(() => Number(route.params.id))
+const teamName = computed(() => teamStore.teamName)
+const activeSection = computed({
+  get: () => teamStore.activeSection,
+  set: val => teamStore.activeSection = val,
+})
 
 onMounted(async () => {
   if (authStore.token && !authStore.user) {
     await authStore.fetchProfile()
   }
-  loadTeamInfo()
 })
-
-const activeSection = useState('teamActiveSection', () => 'todays-tasks')
 
 const sidebarItems = [
   { key: 'todays-tasks', label: 'Today\'s Tasks', icon: 'i-heroicons-calendar' },
@@ -39,6 +27,7 @@ const sidebarItems = [
   { key: 'members', label: 'Members', icon: 'i-heroicons-user-group' },
   { key: 'invitations', label: 'Invitations', icon: 'i-heroicons-envelope' },
   { key: 'issue-tracker', label: 'Issue Tracker', icon: 'i-heroicons-bug-ant' },
+  { key: 'settings', label: 'Settings', icon: 'i-heroicons-cog-6-tooth' },
 ]
 </script>
 
