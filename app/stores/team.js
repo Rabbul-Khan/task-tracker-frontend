@@ -15,11 +15,13 @@ export const useTeamStore = defineStore('team', () => {
   const tasks = ref([])
   const todaysTasks = ref([])
   const members = ref([])
+  const issues = ref([])
 
   // Loading states
   const tasksLoading = ref(false)
   const todaysTasksLoading = ref(false)
   const membersLoading = ref(false)
+  const issuesLoading = ref(false)
 
   // Error states
   const tasksError = ref('')
@@ -105,6 +107,26 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  async function loadIssues() {
+    if (!Number.isFinite(teamId.value)) {
+      issues.value = []
+      return
+    }
+
+    issuesLoading.value = true
+
+    try {
+      const data = await getTasksByTeam(getToken(), teamId.value, { category: 'bug_fix' })
+      issues.value = data.data ?? []
+    }
+    catch (err) {
+      console.error('Failed to load issues', err)
+    }
+    finally {
+      issuesLoading.value = false
+    }
+  }
+
   // --- Section loading ---
 
   function loadSectionData(section) {
@@ -121,6 +143,9 @@ export const useTeamStore = defineStore('team', () => {
         break
       case 'members':
         loadMembers()
+        break
+      case 'issue-tracker':
+        loadIssues()
         break
       case 'settings':
         loadTeamInfo()
@@ -206,9 +231,11 @@ export const useTeamStore = defineStore('team', () => {
     tasks.value = []
     todaysTasks.value = []
     members.value = []
+    issues.value = []
     tasksError.value = ''
     updateTeamError.value = ''
     loadedSections.value = new Set()
+    activeSection.value = 'todays-tasks'
     loadSectionData(activeSection.value)
   }
 
@@ -220,9 +247,11 @@ export const useTeamStore = defineStore('team', () => {
     tasks,
     todaysTasks,
     members,
+    issues,
     tasksLoading,
     todaysTasksLoading,
     membersLoading,
+    issuesLoading,
     tasksError,
     updatingTeam,
     updateTeamError,

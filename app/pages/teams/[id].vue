@@ -17,7 +17,7 @@ const toast = useToast()
 const teamId = computed(() => Number(route.params.id))
 
 // Store state bindings
-const { tasks, todaysTasks, members, tasksLoading, todaysTasksLoading, membersLoading, tasksError, updatingTeam, updateTeamError, deletingTeam } = storeToRefs(teamStore)
+const { tasks, todaysTasks, members, issues, tasksLoading, todaysTasksLoading, membersLoading, issuesLoading, tasksError, updatingTeam, updateTeamError, deletingTeam } = storeToRefs(teamStore)
 const activeSection = computed({
   get: () => teamStore.activeSection,
   set: val => teamStore.activeSection = val,
@@ -436,14 +436,13 @@ async function handleDeleteTeam() {
       </div>
       <hr class="border-gray-300 mb-6">
 
-      <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
-        <UIcon name="i-heroicons-bug-ant" class="w-10 h-10 text-gray-400" />
-        <p class="text-lg font-semibold text-gray-700">
-          Issue tracker coming soon
-        </p>
-        <p class="text-sm text-gray-500">
-          Track and manage issues for this team.
-        </p>
+      <div v-if="issuesLoading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="space-y-4">
+          <div v-for="index in 6" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+        </div>
+      </div>
+      <div v-else>
+        <TaskTable :tasks="issues" @edit-task="openEditTaskModal" @delete-task="openDeleteTaskModal" @update-task="handleInlineUpdateTask" />
       </div>
     </template>
 
