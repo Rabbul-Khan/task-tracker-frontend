@@ -1,108 +1,109 @@
 <script setup>
-import { z } from 'zod'
+import { acceptInvitation } from '~/services/teams'
+import { useAuthStore } from '~/stores/auth'
 
-const schema = z.object({
-  email: z.string({ required_error: 'Email is required' }).email('Enter a valid email address'),
-})
+const authStore = useAuthStore()
+// eslint-disable-next-line no-undef
+const route = useRoute()
+// eslint-disable-next-line no-undef
+const toast = useToast()
 
-const state = reactive({
-  email: '',
-})
-
-const sending = ref(false)
-const inviteSent = ref(false)
+const token = computed(() => route.query.token || '')
+const accepting = ref(false)
+const accepted = ref(false)
 const errorMessage = ref('')
-const lastInvitedEmail = ref('')
 
-async function handleInvite({ data }) {
-  sending.value = true
-  inviteSent.value = false
+async function handleAcceptInvite() {
+  if (!token.value) {
+    errorMessage.value = 'Invalid or missing invitation token.'
+    return
+  }
+
+  accepting.value = true
+  accepted.value = false
   errorMessage.value = ''
 
-  const { email } = data
-
   try {
-    // TODO: Replace with invite API call when backend is ready.
-    await new Promise(resolve => setTimeout(resolve, 600))
+    await acceptInvitation(authStore.token, { token: token.value })
+    accepted.value = true
 
-    inviteSent.value = true
-    lastInvitedEmail.value = email
-    state.email = ''
+    toast.add({
+      title: 'Invitation Accepted',
+      description: 'You have successfully joined the team.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
   }
   catch (error) {
-    console.error('Invite failed', error)
-    errorMessage.value = 'Unable to send invite. Please try again.'
+    console.error('Accept invite failed', error)
+    errorMessage.value = error?.message || 'Unable to accept invitation. Please try again.'
   }
   finally {
-    sending.value = false
+    accepting.value = false
   }
 }
 </script>
 
 <template>
-  <div class="max-w-2xl">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">
-        Invite teammates
-      </h1>
-      <p class="text-gray-600 mt-2">
-        Send a one-time invite link to add new members to your workspace.
-      </p>
-    </div>
+  <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div class="max-w-md w-full">
+      <div class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-900">
+          Team Invitation
+        </h1>
+        <p class="text-gray-600 mt-2">
+          You've been invited to join a team. Click below to accept the invitation.
+        </p>
+      </div>
 
-    <UCard :ui="{ body: { padding: 'p-6 sm:p-8' } }">
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-6"
-        :validate-on="['change', 'input']"
-        @submit="handleInvite"
-      >
-        <UFormField label="Email address" name="email" :ui="{ label: 'text-text font-medium' }">
-          <UInput
-            v-model="state.email"
-            type="email"
-            placeholder="member@company.com"
-            size="lg"
-            :disabled="sending"
-            class="w-full"
-            :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
-            autofocus
-          />
-        </UFormField>
-
-        <div class="flex items-center gap-4">
-          <UButton
-            type="submit"
-            size="lg"
-            color="primary"
-            :loading="sending"
-            class="px-8"
-          >
-            Send invite
-          </UButton>
-          <span class="text-sm text-gray-500">
-            We will email a secure link so they can join your team.
-          </span>
+      <UCard :ui="{ body: { padding: 'p-6 sm:p-8' } }">
+        <div v-if="!token" class="space-y-4 text-center">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-10 h-10 text-red-400 mx-auto" />
+          <p class="text-sm text-gray-600">
+            No invitation token found. Please use the link from your invitation email.
+          </p>
         </div>
 
-        <UAlert
-          v-if="inviteSent"
-          color="success"
-          variant="soft"
-          icon="i-heroicons-check-circle"
-          title="Invite sent"
-          :description="`We emailed a secure link to ${lastInvitedEmail}.`"
-        />
+        <div v-else-if="accepted" class="space-y-4 text-center">
+          <UIcon name="i-heroicons-check-circle" class="w-10 h-10 text-green-500 mx-auto" />
+          <p class="text-lg font-semibold text-gray-900">
+            You're in!
+          </p>
+          <p class="text-sm text-gray-600">
+            You have successfully joined the team.
+          </p>
+          <NuxtLink to="/teams">
+            <UButton color="primary" size="lg" class="mt-2 px-8">
+              Go to Teams
+            </UButton>
+          </NuxtLink>
+        </div>
 
-        <UAlert
-          v-if="errorMessage"
-          color="error"
-          variant="soft"
-          icon="i-heroicons-exclamation-triangle"
-          :title="errorMessage"
-        />
-      </UForm>
-    </UCard>
+        <div v-else class="space-y-6">
+          <div class="flex items-center gap-4">
+            <UButton
+              size="lg"
+              color="primary"
+              :loading="accepting"
+              class="px-8"
+              @click="handleAcceptInvite"
+            >
+              Accept Invitation
+            </UButton>
+            <NuxtLink to="/teams" class="text-sm text-gray-500 hover:text-gray-700">
+              Decline
+            </NuxtLink>
+          </div>
+
+          <UAlert
+            v-if="errorMessage"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="errorMessage"
+          />
+        </div>
+      </UCard>
+    </div>
   </div>
 </template>

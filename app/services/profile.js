@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8003/api'
+const BASE_URL = 'http://192.168.10.46:8003/api'
 
 export async function getMyProfile(token) {
   if (!token) {

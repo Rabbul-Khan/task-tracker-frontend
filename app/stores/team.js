@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { createTask, deleteTask, getTasksByTeam, updateTask } from '~/services/tasks'
-import { deleteTeam as deleteTeamApi, getTeam, getTeamMembers, updateTeam as updateTeamApi } from '~/services/teams'
+import { deleteTeam as deleteTeamApi, getTeam, getTeamMembers, inviteToTeam, updateTeam as updateTeamApi } from '~/services/teams'
 import { useAuthStore } from '~/stores/auth'
 
 export const useTeamStore = defineStore('team', () => {
@@ -16,6 +16,12 @@ export const useTeamStore = defineStore('team', () => {
   const todaysTasks = ref([])
   const members = ref([])
   const issues = ref([])
+
+  // Invitations
+  const invitations = ref([])
+  const invitationsLoading = ref(false)
+  const invitingMember = ref(false)
+  const inviteError = ref('')
 
   // Loading states
   const tasksLoading = ref(false)
@@ -127,6 +133,45 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  // --- Invitation loaders ---
+
+  async function loadInvitations() {
+    invitationsLoading.value = true
+
+    try {
+      const data = await getTeamMembers(getToken(), teamId.value)
+      // Filter for pending invitations if the API returns them alongside members,
+      // otherwise treat the dedicated endpoint response as-is.
+      invitations.value = (data.invitations ?? data.data ?? []).filter(m => m.status === 'pending')
+    }
+    catch (err) {
+      console.error('Failed to load invitations', err)
+    }
+    finally {
+      invitationsLoading.value = false
+    }
+  }
+
+  async function sendInvite(email) {
+    invitingMember.value = true
+    inviteError.value = ''
+
+    try {
+      await inviteToTeam(getToken(), { team_id: teamId.value, email })
+      // Reload invitations list after a successful invite
+      loadedSections.value.delete('invitations')
+      loadSectionData('invitations')
+    }
+    catch (err) {
+      console.error('Failed to send invite', err)
+      inviteError.value = err?.message || 'Unable to send invitation. Please try again.'
+      throw err
+    }
+    finally {
+      invitingMember.value = false
+    }
+  }
+
   // --- Section loading ---
 
   function loadSectionData(section) {
@@ -149,6 +194,9 @@ export const useTeamStore = defineStore('team', () => {
         break
       case 'members':
         loadMembers()
+        break
+      case 'invitations':
+        loadInvitations()
         break
       case 'settings':
         loadTeamInfo()
@@ -240,7 +288,9 @@ export const useTeamStore = defineStore('team', () => {
     todaysTasks.value = []
     members.value = []
     issues.value = []
+    invitations.value = []
     tasksError.value = ''
+    inviteError.value = ''
     updateTeamError.value = ''
     loadedSections.value = new Set()
     activeSection.value = 'todays-tasks'
@@ -256,6 +306,10 @@ export const useTeamStore = defineStore('team', () => {
     todaysTasks,
     members,
     issues,
+    invitations,
+    invitationsLoading,
+    invitingMember,
+    inviteError,
     tasksLoading,
     todaysTasksLoading,
     membersLoading,
@@ -272,6 +326,7 @@ export const useTeamStore = defineStore('team', () => {
     addTask,
     editTask,
     removeTask,
+    sendInvite,
     updateTeamName,
     removeTeam,
   }

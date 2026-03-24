@@ -17,7 +17,7 @@ const toast = useToast()
 const teamId = computed(() => Number(route.params.id))
 
 // Store state bindings
-const { tasks, todaysTasks, members, issues, tasksLoading, todaysTasksLoading, membersLoading, issuesLoading, tasksError, updatingTeam, updateTeamError, deletingTeam } = storeToRefs(teamStore)
+const { tasks, todaysTasks, members, issues, invitations, invitationsLoading, invitingMember, inviteError, tasksLoading, todaysTasksLoading, membersLoading, issuesLoading, tasksError, updatingTeam, updateTeamError, deletingTeam } = storeToRefs(teamStore)
 const activeSection = computed({
   get: () => teamStore.activeSection,
   set: val => teamStore.activeSection = val,
@@ -59,6 +59,13 @@ const deletingTask = ref(false)
 const deletingTaskId = ref(null)
 const deletingTaskTitle = ref('')
 const deleteTeamModalOpen = ref(false)
+
+const inviteModalOpen = ref(false)
+
+const inviteSchema = z.object({
+  email: z.string({ required_error: 'Email is required' }).email('Enter a valid email address'),
+})
+const inviteState = reactive({ email: '' })
 
 const editTaskSchema = z.object({
   title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title is required'),
@@ -281,6 +288,24 @@ async function handleDeleteTeam() {
     })
   }
 }
+
+async function handleSendInvite() {
+  try {
+    await teamStore.sendInvite(inviteState.email)
+    inviteState.email = ''
+    inviteModalOpen.value = false
+
+    toast.add({
+      title: 'Invitation Sent',
+      description: 'The invitation has been sent successfully.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+    })
+  }
+  catch (err) {
+    console.error('Invite failed', err)
+  }
+}
 </script>
 
 <template>
@@ -409,21 +434,68 @@ async function handleDeleteTeam() {
 
     <!-- Invitations -->
     <template v-else-if="activeSection === 'invitations'">
-      <div class="mb-4">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
         <h1 class="text-3xl font-bold text-gray-900">
           Invitations
         </h1>
+        <UButton
+          color="primary"
+          size="md"
+          icon="i-heroicons-envelope"
+          class="px-5"
+          :disabled="invitingMember"
+          @click="inviteModalOpen = true"
+        >
+          Invite Member
+        </UButton>
       </div>
       <hr class="border-gray-300 mb-6">
 
-      <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+      <div v-if="invitationsLoading" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="space-y-4">
+          <div v-for="index in 4" :key="index" class="h-4 w-full animate-pulse rounded bg-gray-100" />
+        </div>
+      </div>
+      <div v-else-if="invitations.length === 0" class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
         <UIcon name="i-heroicons-envelope" class="w-10 h-10 text-gray-400" />
         <p class="text-lg font-semibold text-gray-700">
-          Invitations coming soon
+          No pending invitations
         </p>
         <p class="text-sm text-gray-500">
-          This section will let you manage team invitations.
+          Invite people to join this team by clicking the button above.
         </p>
+      </div>
+      <div v-else class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <th class="px-4 py-3">
+                Email
+              </th>
+              <th class="px-4 py-3">
+                Status
+              </th>
+              <th class="px-4 py-3">
+                Invited At
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 text-sm">
+            <tr v-for="invite in invitations" :key="invite.id" class="bg-white transition-colors hover:bg-gray-50">
+              <td class="px-4 py-4 font-medium text-gray-900">
+                {{ invite.email }}
+              </td>
+              <td class="px-4 py-4">
+                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium capitalize text-yellow-700">
+                  {{ invite.status ?? 'pending' }}
+                </span>
+              </td>
+              <td class="px-4 py-4 text-gray-600">
+                {{ invite.created_at ? new Date(invite.created_at).toLocaleDateString() : '—' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </template>
 
@@ -807,6 +879,67 @@ async function handleDeleteTeam() {
             </UButton>
           </div>
         </div>
+      </template>
+    </UModal>
+
+    <!-- Invite Member Modal -->
+    <UModal
+      v-if="inviteModalOpen" v-model:open="inviteModalOpen"
+      :ui="{ width: 'sm:max-w-md' }"
+      title="Invite Member"
+    >
+      <template #body>
+        <UForm
+          :schema="inviteSchema"
+          :state="inviteState"
+          class="space-y-6"
+          :validate-on="['change', 'input']"
+          @submit="handleSendInvite"
+        >
+          <UFormField label="Email address" name="email" :ui="{ label: 'text-text font-medium' }">
+            <UInput
+              v-model="inviteState.email"
+              type="email"
+              placeholder="member@company.com"
+              size="lg"
+              :disabled="invitingMember"
+              class="w-full"
+              :ui="{ base: 'bg-[#F9FBFE] border-border text-text focus:ring-2 focus:ring-primary' }"
+              autofocus
+            />
+          </UFormField>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              type="button"
+              size="lg"
+              color="error"
+              variant="outline"
+              class="px-8"
+              :disabled="invitingMember"
+              @click="inviteModalOpen = false"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              type="submit"
+              size="lg"
+              color="primary"
+              :loading="invitingMember"
+              class="px-8"
+            >
+              Send Invite
+            </UButton>
+          </div>
+
+          <UAlert
+            v-if="inviteError"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="inviteError"
+          />
+        </UForm>
       </template>
     </UModal>
   </div>
